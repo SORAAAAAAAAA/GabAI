@@ -1,0 +1,14 @@
+.env
+node_modules
+.next
+.env.local
+
+Architecture.md 
+Checklist.md
+ReadME.md
+
+eslint.config.mjs
+
+next-env.d.ts
+
+
