@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface WebSocketMessage {
-  type: 'message' | 'error' | 'connected' | 'ai_response';
+  type: 'message' | 'error' | 'connected' | 'ai_response' | 'user_message';
   data?: unknown;
   error?: string;
 }
@@ -38,10 +38,10 @@ export function useWebSocketChat(sessionId: string | null) {
       console.log('WebSocket disconnected');
       setConnected(false);
     };
-
+    const currentWs = ws.current;
     return () => {
-      if (ws.current) {
-        ws.current.close();
+      if (currentWs) {
+        ws.current?.close();
       }
     };
   }, [sessionId]);
@@ -50,6 +50,15 @@ export function useWebSocketChat(sessionId: string | null) {
   const sendMessage = useCallback((message: unknown) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
+      
+      // Add user message to local messages state for display
+      const msgObj = message as Record<string, unknown>;
+      if (msgObj.type === 'user_message') {
+        setMessages((prev) => [...prev, {
+          type: 'user_message',
+          data: { content: msgObj.content }
+        }]);
+      }
     } else {
       console.error('WebSocket not connected');
     }

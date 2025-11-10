@@ -189,8 +189,9 @@ export default function SessionPage() {
       // startSession() already returns the parsed JSON data
       const responseData = await startSession(userID, job, parsedResume);
       console.log('[handleStartSession] Success Response:', responseData);
-      
       const { sessionId, wsURL } = responseData;
+      console.log('[handleStartSession] Session ID:', sessionId);
+      console.log('[handleStartSession] WebSocket URL:', wsURL);
 
       setSessionStart(false);
       // Redirect to chatbot page

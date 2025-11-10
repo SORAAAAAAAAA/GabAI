@@ -1,36 +1,31 @@
 'use client';
-
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useRef } from 'react';
 import { useWebSocketChat } from '@/hooks/useWebSocket';
 import { useSearchParams } from 'next/navigation';
 
-// Minimal local types for browser SpeechRecognition API
-interface MinimalSpeechRecognition {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  state: 'inactive' | 'recording' | 'paused';
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((event: MinimalSpeechRecognitionEvent) => void) | null;
-  onerror: ((event: MinimalSpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  onstart: (() => void) | null;
-}
-interface MinimalSpeechRecognitionEvent {
+// Type definitions for Web Speech API
+interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
-  results: {
-    [index: number]: {
-      isFinal: boolean;
-      [index: number]: { transcript: string; confidence: number };
-    };
-  };
+  results: SpeechRecognitionResultList;
 }
-interface MinimalSpeechRecognitionErrorEvent {
-  error: string;
-  message?: string;
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
 }
 
 // Main component that uses useSearchParams wrapped in Suspense
@@ -45,74 +40,122 @@ export default function ChatbotPage() {
 // Content component that uses useSearchParams
 function ChatbotContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('sessionId');
+  const sessionId = searchParams.get('sessionId');  
 
   const { messages, sendMessage } = useWebSocketChat(sessionId);
 
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<MinimalSpeechRecognition | null>(null);
+  const recognitionRef = useRef<object | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Speech-to-Text: Record voice and send to API
-  const startListening = async () => {
-    if (isListening) return;
+  // Initialize SpeechRecognition on component mount
+  useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!navigator.mediaDevices || !window.MediaRecorder) {
-      alert('MediaRecorder not supported in this browser.');
+    
+    const SpeechRecognitionAPI = ((window as unknown) as Record<string, unknown>).SpeechRecognition || ((window as unknown) as Record<string, unknown>).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      console.warn('SpeechRecognition not supported in this browser');
       return;
     }
-    setIsListening(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new window.MediaRecorder(stream);
-      const audioChunks: Blob[] = [];
-      mediaRecorder.ondataavailable = (event: BlobEvent) => {
-        audioChunks.push(event.data);
-      };
-      mediaRecorder.onstop = async () => {
-        setIsListening(false);
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64Audio = reader.result?.toString().split(',')[1];
-          if (!base64Audio) return;
-          // Send to speech-to-text API
-          const res = await fetch('/api/ai/speech-to-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ audioBase64: base64Audio })
-          });
-          const data = await res.json();
-          const transcript = data.transcript || '';
-          setInputText(transcript);
-          // Send as user message via WebSocket
-          sendMessage({
-            type: 'user_message',
-            content: transcript,
-            sessionId: sessionId,
-          });
-        };
-        reader.readAsDataURL(audioBlob);
-      };
-      mediaRecorder.start();
-      recognitionRef.current = mediaRecorder as unknown as MinimalSpeechRecognition;
-      // Auto-stop after 5 seconds
-      setTimeout(() => {
-        if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-      }, 5000);
-    } catch (err) {
+
+    const recognition = new (SpeechRecognitionAPI as unknown as new () => object)();
+    const recognitionObj = recognition as Record<string, unknown>;
+    
+    recognitionObj.continuous = false;
+    recognitionObj.interimResults = true;
+    recognitionObj.lang = 'en-US';
+
+    recognitionObj.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognitionObj.onresult = (event: SpeechRecognitionEvent) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInputText(transcript);
+    };
+
+    recognitionObj.onerror = (event: Event) => {
+      const errorEvent = event as unknown as { error: string };
+      console.error('Speech recognition error:', errorEvent.error);
+      
+      if (errorEvent.error === 'not-allowed') {
+        console.warn('Microphone permission denied. Please enable microphone in browser settings.');
+        alert('Microphone permission denied. Please enable microphone access in your browser settings and refresh the page.');
+      } else if (errorEvent.error === 'no-speech') {
+        console.warn('No speech detected. Please try again.');
+      } else if (errorEvent.error === 'network') {
+        console.warn('Network error. Please check your connection.');
+      }
       setIsListening(false);
-      alert(err);
+    };
+
+    recognitionObj.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, []);
+
+  // Auto-send message when speech ends
+  useEffect(() => {
+    if (!inputText.trim() || isListening) return;
+
+    const timer = setTimeout(() => {
+      if (inputText.trim()) {
+        sendMessage({
+          type: 'user_message',
+          content: inputText,
+          sessionId: sessionId,
+        });
+        setInputText('');
+      }
+    }, 1000); // Wait 1 second after user stops talking to auto-send
+
+    return () => clearTimeout(timer);
+  }, [inputText, isListening, sendMessage, sessionId]);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Speech-to-Text: Start listening using Web Speech API
+  const startListening = async () => {
+    if (isListening || !recognitionRef.current) return;
+    
+    try {
+      // Request microphone permission first
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          console.error('Microphone permission denied:', err);
+          alert('Microphone permission denied. Please enable microphone access in browser settings.');
+          return;
+        }
+      }
+      
+      setInputText('');
+      const recognition = recognitionRef.current as unknown as { 
+        start: () => void;
+      };
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      alert('Could not start microphone. Please check your browser permissions.');
     }
   };
 
   // Stop listening
   const stopListening = () => {
-    if (recognitionRef.current && recognitionRef.current.state !== 'inactive') {
-      recognitionRef.current.stop();
-    }
-    setIsListening(false);
+    if (!recognitionRef.current) return;
+    const recognition = recognitionRef.current as unknown as { stop: () => void };
+    recognition.stop();
   };
 
   // Text-to-Speech: Speak text
@@ -127,69 +170,116 @@ function ChatbotContent() {
     synth.speak(utter);
   };
 
-  // Send text input as message
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
-    sendMessage({
-      type: 'user_message',
-      content: inputText,
-      sessionId: sessionId,
-    });
-    setInputText('');
-  };
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-xl p-6 bg-white rounded-xl shadow-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Voice Interview Assistant</h2>
-        <div className="mb-4 flex gap-2 justify-center">
-          <button
-            onClick={isListening ? stopListening : startListening}
-            className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${isListening ? 'bg-red-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-          >
-            {isListening ? 'Stop Listening' : 'Start Talking'}
-          </button>
-          <button
-            onClick={() => {
-              const lastMessage = messages[messages.length - 1];
-              const textToSpeak = lastMessage && 'data' in lastMessage ? (lastMessage.data as Record<string, unknown>)?.text as string || 'No message to repeat' : 'No message to repeat';
-              speakText(textToSpeak);
-            }}
-            className="px-4 py-2 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600"
-            disabled={isSpeaking}
-          >
-            {isSpeaking ? 'Speaking...' : 'Repeat Last Response'}
-          </button>
+    <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400">
+      {/* Header */}
+      <div className="flex-shrink-0 bg-blue-900 bg-opacity-40 text-white p-4 shadow-lg">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">AI Interview</h1>
+            <p className="text-blue-100 text-sm mt-1">Speak naturally - just have a conversation</p>
+          </div>
+          <div className="text-right text-black">
+            <div className="inline-block bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm whitespace-nowrap">
+              {isListening ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                  Listening...
+                </span>
+              ) : isSpeaking ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                  Speaking...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
+                  Ready
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="mb-4">
-          <input
-            type="text"
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            placeholder="Type your answer or use the mic..."
-            className="w-full px-4 py-2 border rounded-lg"
-            disabled={isListening}
-          />
-          <button
-            onClick={handleSendMessage}
-            className="mt-2 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-            disabled={!inputText.trim()}
-          >
-            Send
-          </button>
-        </div>
-        <div className="h-64 overflow-y-auto border rounded-lg p-4 bg-gray-100">
-          {messages.map((msg, index) => {
-            const isUserMessage = msg.type === 'message' && (msg.data as { isUser?: boolean }).isUser;
-            const messageText = (msg.data as { text?: string }).text || JSON.stringify(msg.data);
-            return (
-              <div key={index} className={`mb-2 flex ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
-                <div className={`px-4 py-2 rounded-lg ${isUserMessage ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'}`}>
-                  {messageText}
-                </div>
+      </div>
+
+      {/* Chat Container - Only scrollable part */}
+      <div className="flex-1 overflow-y-auto py-6 min-h-0">
+        <div className="space-y-4">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-white">
+                <p className="text-lg font-semibold mb-2">👋 Welcome to your AI Interview</p>
+                <p className="text-blue-100">Click the microphone below to start speaking</p>
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            messages.map((msg, index) => {
+              const isAI = msg.type === 'ai_response';
+              let messageText = '';
+              
+              if (isAI) {
+                messageText = (msg.data as Record<string, unknown>)?.text as string || '';
+              } else if (msg.type === 'message') {
+                messageText = (msg.data as Record<string, unknown>)?.content as string || '';
+              } else if (msg.type === 'user_message') {
+                messageText = (msg.data as Record<string, unknown>)?.content as string || '';
+              }
+              
+              if (!messageText) return null;
+              
+              return (
+                <div key={index} className={`flex w-full ${isAI ? 'justify-start' : 'justify-end'} px-6`}>
+                  <div
+                    className={`max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg px-4 py-3 rounded-2xl shadow-lg ${
+                      isAI
+                        ? 'bg-white bg-opacity-95 text-gray-900 rounded-bl-none'
+                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-br-none'
+                    }`}
+                  >
+                    <p className="text-sm leading-relaxed">{messageText}</p>
+                    {isAI && (
+                      <button
+                        onClick={() => speakText(messageText)}
+                        disabled={isSpeaking}
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                      >
+                        🔊 Repeat
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="flex-shrink-0 bg-blue-900 bg-opacity-40 p-6 shadow-xl">
+        <div className="max-w-7xl mx-auto">
+          {/* Voice Button */}
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={isListening ? stopListening : startListening}
+              className={`relative w-20 h-20 rounded-full font-bold text-white shadow-2xl transition-all duration-200 transform hover:scale-110 flex items-center justify-center ${
+                isListening
+                  ? 'bg-red-500 hover:bg-red-600 animate-pulse ring-4 ring-red-300'
+                  : 'bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 ring-4 ring-green-300'
+              }`}
+            >
+              <span className="text-3xl">{isListening ? '⏸️' : '🎤'}</span>
+            </button>
+          </div>
+
+          {/* Transcript Display */}
+          {inputText && (
+            <div className="bg-white bg-opacity-95 text-gray-900 px-6 py-4 rounded-2xl mb-4 text-center">
+              <p className="text-sm text-gray-500 mb-2 font-semibold">Your message:</p>
+              <p className="text-lg leading-relaxed">{inputText}</p>
+              <p className="text-xs text-gray-400 mt-2">Sending when you stop talking...</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
