@@ -109,7 +109,7 @@ function ChatbotContent() {
       if (inputText.trim()) {
         sendMessage({
           type: 'user_message',
-          content: inputText,
+          message: inputText,
           sessionId: sessionId,
         });
         setInputText('');
@@ -158,17 +158,6 @@ function ChatbotContent() {
     recognition.stop();
   };
 
-  // Text-to-Speech: Speak text
-  const speakText = (text: string) => {
-    if (typeof window === 'undefined') return;
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    const utter = new window.SpeechSynthesisUtterance(text);
-    utter.onstart = () => setIsSpeaking(true);
-    utter.onend = () => setIsSpeaking(false);
-    utter.onerror = () => setIsSpeaking(false);
-    synth.speak(utter);
-  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400">
@@ -237,15 +226,7 @@ function ChatbotContent() {
                     }`}
                   >
                     <p className="text-sm leading-relaxed">{messageText}</p>
-                    {isAI && (
-                      <button
-                        onClick={() => speakText(messageText)}
-                        disabled={isSpeaking}
-                        className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                      >
-                        🔊 Repeat
-                      </button>
-                    )}
+                    
                   </div>
                 </div>
               );
