@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import http, { get } from "http";
 import dotenv from "dotenv";
 import { getUserName } from "./services/userService.js";
-import { startInterview, continueInterview } from "./api/google/gemini";
+import { startLiveInterview, continueInterview, endLiveInterview } from "./api/google/gemini";
 
 dotenv.config();
 
@@ -55,6 +55,8 @@ wss.on('connection', async (ws, req) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionToken');
     
+    console.log(`[connection] New WebSocket connection from sessionToken: ${sessionId}`);
+    
     if (!sessionId) {
         console.error('No sessionToken provided in WebSocket connection');
         ws.send(JSON.stringify({
@@ -66,7 +68,6 @@ wss.on('connection', async (ws, req) => {
     }
 
     // send a user a first message from AI upon connection
-
     const {data: sessionData, error: sessionError} = await supabase
             .from('sessions')
             .select('*')
@@ -121,46 +122,83 @@ wss.on('connection', async (ws, req) => {
         return;
     }
     
-    const interviewResponse = await startInterview(
-        userName,
-        job_title,
-        resume_text
-    );
-    // Send initial AI greeting message
-    ws.send(JSON.stringify({
-        type: 'ai_response',
-        data: { text: interviewResponse }
-    }));
+    try {
+        await startLiveInterview(userName, job_title, resume_text);
+        console.debug(`Interview started for ${userName} - Position: ${job_title}`);
+
+        await continueInterview(
+            "Start the interview",
+            (chunk) => {
+                // Stream each chunk to the frontend as it arrives
+                ws.send(JSON.stringify({
+                    type: 'ai_chunk',
+                    data: {
+                        text: chunk.text,
+                        audioBase64: chunk.audioBase64,
+                        isComplete: chunk.isComplete
+                    }
+                }));
+            }
+        );
+
+        console.debug("Initial AI response streamed to client");
+    } catch (error) {
+        console.error("Error starting interview or sending initial response:", error);
+        ws.send(JSON.stringify({
+            type: 'error', 
+            error: 'Error starting interview'
+        }));
+        return;
+    }
 
     // Set up message handler for subsequent messages
-    ws.on('message', async (data) => {
+    ws.on('message', async (message: string) => {
         try {
-            const messageObj = JSON.parse(data.toString());
-            const { type, message, sessionId } = messageObj;
+            const data = JSON.parse(message);
 
-            if (type === 'user_message' && message) {
-                const userMessage = message as string;
+            if (data.type === 'user_message') {
+                const userMessage = data.message;
 
-                const aiResponse = await continueInterview(userMessage);
+                if (!userMessage) {
+                    ws.send(JSON.stringify({
+                        type: 'error', 
+                        error: 'No message provided'
+                    }));
+                    return;
+                }
 
+                console.debug('Received user message:', userMessage);
+
+                await continueInterview(userMessage, (chunk) => {
+                    // Stream each chunk to the frontend as it arrives
+                    ws.send(JSON.stringify({
+                        type: 'ai_chunk',
+                        data: {
+                            text: chunk.text,
+                            audioBase64: chunk.audioBase64,
+                            isComplete: chunk.isComplete
+                        }
+                    }));
+                });
+
+                console.debug("AI response streamed to client");
+            }
+
+            if (data.type === 'end_interview') {
+                await endLiveInterview();
                 ws.send(JSON.stringify({
-                    type: 'ai_response',
-                    data: { text: aiResponse }
+                    type: 'interview_ended',
+                    message: 'Interview session has ended.'
                 }));
-            } else {
-                console.error('Invalid message format:', messageObj);
-                ws.send(JSON.stringify({
-                    type: 'error', 
-                    error: 'Invalid message format'
-                }));
+                ws.close();
             }
         } catch (error) {
             console.error('Error processing message:', error);
             ws.send(JSON.stringify({
-                type: 'error', 
-                error: 'Error processing message'
+                type: 'error',
+                error: 'Failed to process message'
             }));
-        }  
+        }
     });
 });
 
