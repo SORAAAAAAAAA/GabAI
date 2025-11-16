@@ -3,30 +3,8 @@ import { useState, Suspense, useEffect } from 'react';
 import { useRef } from 'react';
 import { useWebSocketChat } from '@/hooks/useWebSocket';
 import { useSearchParams } from 'next/navigation';
+import type { SpeechRecognitionEvent } from '@/types/speech';
 
-// Type definitions for Web Speech API
-interface SpeechRecognitionEvent extends Event {
-  resultIndex: number;
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-  isFinal: boolean;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
 
 // Main component that uses useSearchParams wrapped in Suspense
 export default function ChatbotPage() {
@@ -49,7 +27,6 @@ function ChatbotContent() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<object | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   // Initialize SpeechRecognition on component mount
   useEffect(() => {
@@ -124,50 +101,6 @@ function ChatbotContent() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const playAudio = (audioBase64: string) => {
-    try {
-      // Gemini TTS returns WAV format audio (24-bit PCM)
-      const audioDataUrl = `data:audio/wav;base64,${audioBase64}`;
-
-      if (!audioRef.current) {
-        audioRef.current = new Audio();
-        audioRef.current.muted = true;
-      }
-
-      const audio = audioRef.current;
-      audio.src = audioDataUrl;
-      audio.volume = 0.8;
-
-      setIsSpeaking(true);
-
-      // Add event listeners before playing
-      audio.onended = () => {
-        console.log('Audio playback ended');
-        setIsSpeaking(false);
-      };
-
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        setIsSpeaking(false);
-      };
-
-      audio.oncanplay = () => {
-        console.log('Audio ready to play, duration:', audio.duration);
-      };
-
-      audio.play().then(() => {
-        console.log('Audio is now playing');
-      }).catch(error => {
-        console.error('Error playing audio:', error);
-        setIsSpeaking(false); 
-      });
-
-    } catch (error) {
-      console.error('Error in playAudio:', error);
-      setIsSpeaking(false);
-    }
-  }
 
   // Speech-to-Text: Start listening using Web Speech API
   const startListening = async () => {
