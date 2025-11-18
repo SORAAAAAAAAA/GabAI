@@ -145,13 +145,14 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
 
   return (
     <AuthCard
-      title="Create Your Account"
+      title="Create Account"
+      subtitle="Join thousands of students mastering interviews"
       footer={
         <>
           <span className="text-gray-600">Already have an account?{" "}</span>
           <button 
             onClick={onSwitchToLogin}
-            className="text-blue-500 hover:underline focus:outline-none"
+            className="text-blue-600 font-semibold hover:text-blue-700 focus:outline-none transition-colors"
           >
             Sign in here
           </button>
@@ -159,94 +160,99 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
       }
     >
       {signupSuccess && (
-        <div className="mb-4 p-3 border rounded-lg text-sm bg-green-100 border-green-400 text-green-700">
-          Check your email for a confirmation link to complete your registration.
+        <div className="p-4 rounded-xl text-sm bg-green-50 border-l-4 border-green-500 text-green-700">
+          <div>Check your email for a confirmation link to complete your registration.</div>
         </div>
       )}
 
       {signupError && (
-        <div className="mb-4 p-3 border rounded-lg text-sm bg-red-100 border-red-400 text-red-700">
-          {signupError}
+        <div className="p-4 rounded-xl text-sm bg-red-50 border-l-4 border-red-500 text-red-700">
+          <div>{signupError}</div>
         </div>
       )}
 
       <form onSubmit={(e) => {
         e.preventDefault();
         handleSignup();
-      }}>
+      }} className="space-y-5">
         {/* Full Name Input */}
-        <div className="mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
           <input
             type="text"
             value={signupData.name}
             onChange={(e) => handleSignupInputChange('name', e.target.value)}
-            placeholder="Full Name"
-            className={`w-full px-4 py-2 rounded-lg text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 transition-colors ${
+            placeholder="John Doe"
+            className={`w-full px-4 py-3 rounded-xl text-gray-900 border-2 transition-all duration-200 ${
               signupFieldErrors.name 
-                ? 'border-2 border-red-500 focus:ring-red-500' 
-                : 'focus:ring-blue-500'
-            }`}
+                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 focus:bg-white'
+            } focus:outline-none focus:ring-2`}
             disabled={signupLoading}
           />
           {signupFieldErrors.name && (
-            <p className="mt-1 text-sm text-red-600">{signupFieldErrors.name}</p>
+            <p className="mt-2 text-sm text-red-600 font-medium">{signupFieldErrors.name}</p>
           )}
         </div>
 
         {/* Email Input */}
-        <div className="mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
           <input
             type="email"
             value={signupData.email}
             onChange={(e) => handleSignupInputChange('email', e.target.value)}
-            placeholder="Email"
-            className={`w-full px-4 py-2 rounded-lg text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 transition-colors ${
+            placeholder="you@university.edu"
+            className={`w-full px-4 py-3 rounded-xl text-gray-900 border-2 transition-all duration-200 ${
               signupFieldErrors.email 
-                ? 'border-2 border-red-500 focus:ring-red-500' 
-                : 'focus:ring-blue-500'
-            }`}
+                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 focus:bg-white'
+            } focus:outline-none focus:ring-2`}
             disabled={signupLoading}
           />
           {signupFieldErrors.email && (
-            <p className="mt-1 text-sm text-red-600">{signupFieldErrors.email}</p>
+            <p className="mt-2 text-sm text-red-600 font-medium">{signupFieldErrors.email}</p>
           )}
         </div>
 
         {/* Password Input */}
-        <div className="mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
           <input
             type="password"
             value={signupData.password}
             onChange={(e) => handleSignupInputChange('password', e.target.value)}
-            placeholder="Password"
-            className={`w-full px-4 py-2 rounded-lg text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 transition-colors ${
+            placeholder="••••••••"
+            className={`w-full px-4 py-3 rounded-xl text-gray-900 border-2 transition-all duration-200 ${
               signupFieldErrors.password 
-                ? 'border-2 border-red-500 focus:ring-red-500' 
-                : 'focus:ring-blue-500'
-            }`}
+                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 focus:bg-white'
+            } focus:outline-none focus:ring-2`}
             disabled={signupLoading}
           />
+          <p className="mt-2 text-xs text-gray-500">Minimum 6 characters</p>
           {signupFieldErrors.password && (
-            <p className="mt-1 text-sm text-red-600">{signupFieldErrors.password}</p>
+            <p className="mt-1 text-sm text-red-600 font-medium">{signupFieldErrors.password}</p>
           )}
         </div>
 
         {/* Confirm Password Input */}
-        <div className="mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
           <input
             type="password"
             value={signupData.confirmPassword}
             onChange={(e) => handleSignupInputChange('confirmPassword', e.target.value)}
-            placeholder="Confirm Password"
-            className={`w-full px-4 py-2 rounded-lg text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 transition-colors ${
+            placeholder="••••••••"
+            className={`w-full px-4 py-3 rounded-xl text-gray-900 border-2 transition-all duration-200 ${
               signupFieldErrors.confirmPassword 
-                ? 'border-2 border-red-500 focus:ring-red-500' 
-                : 'focus:ring-blue-500'
-            }`}
+                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 focus:bg-white'
+            } focus:outline-none focus:ring-2`}
             disabled={signupLoading}
           />
           {signupFieldErrors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">{signupFieldErrors.confirmPassword}</p>
+            <p className="mt-2 text-sm text-red-600 font-medium">{signupFieldErrors.confirmPassword}</p>
           )}
         </div>
 
@@ -254,15 +260,15 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         <button 
           type="submit" 
           disabled={signupLoading || !signupData.name || !signupData.email || !signupData.password || !signupData.confirmPassword}
-          className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
         >
           {signupLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Creating Account...
-            </div>
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              <span>Creating account...</span>
+            </>
           ) : (
-            'Sign Up'
+            <span>Get Started</span>
           )}
         </button>
       </form>
