@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface WebSocketMessage {
-  type: 'message' | 'error' | 'connected' | 'ai_chunk' | 'user_message';
+  type: 'message' | 'error' | 'connected' | 'ai_chunk' | 'user_message' | 'session_ended' | 'interview_ended';
   data?: unknown;
   error?: string;
+  message?: string;
 }
 
 export function useWebSocketChat(sessionId: string | null) {
@@ -76,27 +77,27 @@ export function useWebSocketChat(sessionId: string | null) {
     });
   }, [getAudioContext]);
 
-  // Define playAudioQueue inside useEffect to avoid dependency issues
-    const handlePlayAudioQueue = async () => {
-      console.log('playAudioQueue called, queue length:', audioQueueRef.current.length, 'isPlaying:', isPlayingRef.current);
-      if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
-      
-      isPlayingRef.current = true;
-      
-      while (audioQueueRef.current.length > 0) {
-        const audioBase64 = audioQueueRef.current.shift();
-        if (audioBase64) {
-          try {
-            await playAudioChunk(audioBase64);
-          } catch (error) {
-            console.error('Error playing audio chunk:', error);
-          }
+  // Define playAudioQueue with useCallback to memoize it
+  const handlePlayAudioQueue = useCallback(async () => {
+    console.log('playAudioQueue called, queue length:', audioQueueRef.current.length, 'isPlaying:', isPlayingRef.current);
+    if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
+    
+    isPlayingRef.current = true;
+    
+    while (audioQueueRef.current.length > 0) {
+      const audioBase64 = audioQueueRef.current.shift();
+      if (audioBase64) {
+        try {
+          await playAudioChunk(audioBase64);
+        } catch (error) {
+          console.error('Error playing audio chunk:', error);
         }
       }
-      
-      isPlayingRef.current = false;
-      console.log('playAudioQueue finished');
-    };
+    }
+    
+    isPlayingRef.current = false;
+    console.log('playAudioQueue finished');
+  }, [playAudioChunk]);
 
   // Connect to WebSocket
   useEffect(() => {
@@ -132,6 +133,25 @@ export function useWebSocketChat(sessionId: string | null) {
     ws.current.onmessage = (event) => {
       console.log('Message from server:', event.data);
       const message = JSON.parse(event.data);
+      
+      // Handle session ended message
+      if (message.type === 'session_ended') {
+        console.log('Session ended from server:', message.message);
+        setConnected(false);
+        setMessages((prev) => [...prev, { 
+          type: 'session_ended', 
+          message: message.message || 'Session has been terminated'
+        }]);
+        // WebSocket will close after this message
+        return;
+      }
+
+      // Handle interview ended message
+      if (message.type === 'interview_ended') {
+        console.log('Interview ended:', message.message);
+        setMessages((prev) => [...prev, message]);
+        return;
+      }
       
       // Handle streaming chunks
       if (message.type === 'ai_chunk') {
@@ -188,7 +208,7 @@ export function useWebSocketChat(sessionId: string | null) {
         }
       }
     };
-  }, [sessionId]);
+  }, [sessionId, getAudioContext, handlePlayAudioQueue]);
 
   // Send message to WebSocket
   const sendMessage = useCallback((message: unknown) => {

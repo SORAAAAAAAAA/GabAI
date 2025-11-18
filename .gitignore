@@ -10,5 +10,4 @@ eslint.config.mjs
 
 next-env.d.ts
 
-
-
+/docs

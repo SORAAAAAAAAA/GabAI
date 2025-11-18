@@ -20,7 +20,7 @@ export default function InterviewSetup({ resumeText }: InterviewSetupProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 shadow-sm w-1/2 relative">
+    <div className="bg-white rounded-lg p-6 shadow-sm w-1/2 relative h-full">
       {sessionStart && <SessionLoader message="Starting your interview session..." />}
       
       <h2 className="text-lg font-medium text-gray-900 mb-4">

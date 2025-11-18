@@ -104,12 +104,13 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
   return (
     <AuthCard
       title="Welcome Back"
+      subtitle="Sign in to continue your interview prep journey"
       footer={
         <>
           <span className="text-gray-600">Don&apos;t have an account?{" "}</span>
           <button 
             onClick={onSwitchToSignup}
-            className="text-blue-500 hover:underline focus:outline-none"
+            className="text-blue-600 font-semibold hover:text-blue-700 focus:outline-none transition-colors"
           >
             Sign up here
           </button>
@@ -117,50 +118,52 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
       }
     >
       {loginError && (
-        <div className="mb-4 p-3 border rounded-lg text-sm bg-red-100 border-red-400 text-red-700">
-          {loginError}
+        <div className="p-4 rounded-xl text-sm bg-red-50 border-l-4 border-red-500 text-red-700">
+          <div>{loginError}</div>
         </div>
       )}
 
       <form onSubmit={(e) => {
         e.preventDefault();
         handleLogin();
-      }}>
+      }} className="space-y-5">
         {/* Email Input */}
-        <div className="mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
           <input
             type="email"
             value={loginData.email}
             onChange={(e) => handleLoginInputChange('email', e.target.value)}
-            placeholder="Email"
-            className={`w-full px-4 py-2 rounded-lg text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 transition-colors ${
+            placeholder="you@university.edu"
+            className={`w-full px-4 py-3 rounded-xl text-gray-900 border-2 transition-all duration-200 ${
               loginFieldErrors.email 
-                ? 'border-2 border-red-500 focus:ring-red-500' 
-                : 'focus:ring-blue-500'
-            }`}
+                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 focus:bg-white'
+            } focus:outline-none focus:ring-2`}
             disabled={loginLoading}
           />
           {loginFieldErrors.email && (
-            <p className="mt-1 text-sm text-red-600">{loginFieldErrors.email}</p>
+            <p className="mt-2 text-sm text-red-600 font-medium">{loginFieldErrors.email}</p>
           )}
         </div>
 
         {/* Password Input */}
-        <div className="mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
           <input
             type="password"
             value={loginData.password}
             onChange={(e) => handleLoginInputChange('password', e.target.value)}
-            placeholder="Password"
-            className={`w-full px-4 py-2 rounded-lg text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 transition-colors ${
+            placeholder="••••••••"
+            className={`w-full px-4 py-3 rounded-xl text-gray-900 border-2 transition-all duration-200 ${
               loginFieldErrors.password 
-                ? 'border-2 border-red-500 focus:ring-red-500' 
-                : 'focus:ring-blue-500'
-            }`}
+                ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500 focus:bg-white'
+            } focus:outline-none focus:ring-2`}
             disabled={loginLoading}
           />
           {loginFieldErrors.password && (
-            <p className="mt-1 text-sm text-red-600">{loginFieldErrors.password}</p>
+            <p className="mt-2 text-sm text-red-600 font-medium">{loginFieldErrors.password}</p>
           )}
         </div>
 
@@ -168,15 +171,15 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
         <button 
           type="submit" 
           disabled={loginLoading || !loginData.email || !loginData.password}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
         >
           {loginLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Signing In...
-            </div>
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              <span>Signing in...</span>
+            </>
           ) : (
-            'Login'
+            <span>Sign In</span>
           )}
         </button>
       </form>

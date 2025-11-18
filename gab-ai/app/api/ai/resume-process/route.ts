@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
         const arrayBuffer = await (file as Blob).arrayBuffer();
 
-        const genAI = ai.getGenerativeModel({model:"gemini-2.5-flash"});
+        const genAI = ai.getGenerativeModel({model:"gemini-2.5-flash-lite"});
 
         const result = await genAI.generateContent([
             "Highlight the key skills and experiences from this resume that can be use to tailor questions for a job interview.",

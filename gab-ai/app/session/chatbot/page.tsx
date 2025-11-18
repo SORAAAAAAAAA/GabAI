@@ -2,8 +2,10 @@
 import { useState, Suspense, useEffect } from 'react';
 import { useRef } from 'react';
 import { useWebSocketChat } from '@/hooks/useWebSocket';
+import { useSessionExit } from '@/hooks/useSessionExit';
 import { useSearchParams } from 'next/navigation';
 import type { SpeechRecognitionEvent } from '@/types/speech';
+import SessionExitConfirmation from '@/app/session/components/SessionExitConfirmation';
 
 
 // Main component that uses useSearchParams wrapped in Suspense
@@ -21,12 +23,32 @@ function ChatbotContent() {
   const sessionId = searchParams.get('sessionId');  
 
   const { messages, sendMessage } = useWebSocketChat(sessionId);
+  const {
+    isConfirmationOpen,
+    isExiting,
+    handleExitSession,
+    handleContinueInterview,
+  } = useSessionExit({
+    sessionId,
+    isInActiveSession: true, // Always active in chatbot page
+  });
 
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<object | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Detect if AI is currently speaking by checking only the most recent ai_chunk
+  const isSpeaking = (() => {
+    // Find the most recent ai_chunk message
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === 'ai_chunk') {
+        const chunkData = messages[i].data as { isComplete?: boolean };
+        return !chunkData.isComplete; // Only the most recent chunk matters
+      }
+    }
+    return false; // No ai_chunk found, AI is not speaking
+  })();
 
   // Initialize SpeechRecognition on component mount
   useEffect(() => {
@@ -138,45 +160,57 @@ function ChatbotContent() {
 
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400">
+    <div className="flex flex-col h-screen overflow-hidden bg-white">
       {/* Header */}
-      <div className="flex-shrink-0 bg-blue-900 bg-opacity-40 text-white p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-8 py-6 shadow-sm">
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold">AI Interview</h1>
-            <p className="text-blue-100 text-sm mt-1">Speak naturally - just have a conversation</p>
+            <h1 className="text-3xl font-bold text-gray-900">AI Interview</h1>
+            <p className="text-gray-600 text-sm mt-1">Speak naturally - just have a conversation</p>
           </div>
-          <div className="text-right text-black">
-            <div className="inline-block bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm whitespace-nowrap">
-              {isListening ? (
-                <span className="flex items-center gap-2">
-                  <span className="inline-block w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
-                  Listening...
-                </span>
-              ) : isSpeaking ? (
-                <span className="flex items-center gap-2">
-                  <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-                  Speaking...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <span className="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
-                  Ready
-                </span>
-              )}
+          
+          {/* Status Indicator and End Session Button */}
+          <div className="flex items-center gap-4">
+            {/* Status Indicator */}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 border border-gray-200">
+              <div className={`w-3 h-3 rounded-full ${
+                isListening ? 'bg-red-500 animate-pulse' :
+                isSpeaking ? 'bg-blue-500 animate-pulse' :
+                'bg-green-500'
+              }`}></div>
+              <span className="text-sm font-medium text-gray-700">
+                {isListening ? 'Listening...' : isSpeaking ? 'Speaking...' : 'Ready'}
+              </span>
             </div>
+
+            {/* End Session Button */}
+            <button
+              onClick={handleExitSession}
+              disabled={isExiting}
+              className="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              {isExiting ? 'Exiting...' : 'End Session'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Chat Container - Only scrollable part */}
-      <div className="flex-1 overflow-y-auto py-6 min-h-0">
-        <div className="space-y-4">
+      {/* Chat Container */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 py-8 min-h-0">
+        <div className="space-y-6">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center text-white">
-                <p className="text-lg font-semibold mb-2">👋 Welcome to your AI Interview</p>
-                <p className="text-blue-100">Click the microphone below to start speaking</p>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-lg font-semibold text-gray-900 mb-2">Welcome to your AI Interview</p>
+                <p className="text-gray-600">Click the microphone below to start speaking</p>
               </div>
             </div>
           ) : (
@@ -195,16 +229,15 @@ function ChatbotContent() {
               if (!messageText) return null;
               
               return (
-                <div key={index} className={`flex w-full ${isAI ? 'justify-start' : 'justify-end'} px-6`}>
+                <div key={index} className={`flex ${isAI ? 'justify-start' : 'justify-end'} px-6`}>
                   <div
-                    className={`max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg px-4 py-3 rounded-2xl shadow-lg ${
+                    className={`max-w-2xl px-5 py-3 rounded-2xl shadow-sm ${
                       isAI
-                        ? 'bg-white bg-opacity-95 text-gray-900 rounded-bl-none'
-                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-br-none'
+                        ? 'bg-white text-gray-900 border border-gray-200 rounded-tl-none'
+                        : 'bg-blue-600 text-white rounded-tr-none'
                     }`}
                   >
                     <p className="text-sm leading-relaxed">{messageText}</p>
-                    
                   </div>
                 </div>
               );
@@ -215,32 +248,53 @@ function ChatbotContent() {
       </div>
 
       {/* Input Area */}
-      <div className="flex-shrink-0 bg-blue-900 bg-opacity-40 p-6 shadow-xl">
-        <div className="max-w-7xl mx-auto">
-          {/* Voice Button */}
-          <div className="flex justify-center mb-4">
-            <button
-              onClick={isListening ? stopListening : startListening}
-              className={`relative w-20 h-20 rounded-full font-bold text-white shadow-2xl transition-all duration-200 transform hover:scale-110 flex items-center justify-center ${
-                isListening
-                  ? 'bg-red-500 hover:bg-red-600 animate-pulse ring-4 ring-red-300'
-                  : 'bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 ring-4 ring-green-300'
-              }`}
-            >
-              <span className="text-3xl">{isListening ? '⏸️' : '🎤'}</span>
-            </button>
-          </div>
-
+      <div className="flex-shrink-0 bg-white border-t border-gray-200 px-8 py-6 shadow-lg">
+        <div className="max-w-4xl mx-auto">
           {/* Transcript Display */}
           {inputText && (
-            <div className="bg-white bg-opacity-95 text-gray-900 px-6 py-4 rounded-2xl mb-4 text-center">
-              <p className="text-sm text-gray-500 mb-2 font-semibold">Your message:</p>
-              <p className="text-lg leading-relaxed">{inputText}</p>
+            <div className="bg-gray-50 border border-gray-200 text-gray-900 px-6 py-4 rounded-xl mb-6 text-center">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Your message</p>
+              <p className="text-base leading-relaxed text-gray-900">{inputText}</p>
               <p className="text-xs text-gray-400 mt-2">Sending when you stop talking...</p>
             </div>
           )}
+          
+          {/* Voice Button and Info */}
+          <div className="flex flex-col items-center gap-4">
+            <button
+              onClick={isListening ? stopListening : startListening}
+              className={`w-20 h-20 rounded-full font-bold text-white shadow-lg transition-all duration-200 transform hover:scale-110 flex items-center justify-center ${
+                isListening
+                  ? 'bg-red-500 hover:bg-red-600 animate-pulse ring-4 ring-red-200'
+                  : 'bg-blue-600 hover:bg-blue-700 ring-4 ring-blue-200'
+              }`}
+            >
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                {isListening ? (
+                  <path fillRule="evenodd" d="M6 4a2 2 0 012-2h4a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V4zm2-1a1 1 0 00-1 1v12a1 1 0 001 1h4a1 1 0 001-1V4a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                ) : (
+                  <path d="M8 16A6 6 0 1020 10a1 1 0 11-2 0 4 4 0 10-8 0v3.5a3 3 0 11-6 0V10a1 1 0 112 0v3.5a1 1 0 001 1v1a6 6 0 006 6z" />
+                )}
+              </svg>
+            </button>
+            
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-900">
+                {isListening ? 'Tap to stop listening' : 'Tap to start speaking'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Your message will be sent automatically</p>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Session Exit Confirmation Modal */}
+      <SessionExitConfirmation
+        isOpen={isConfirmationOpen}
+        onContinue={handleContinueInterview}
+        onExit={handleExitSession}
+        isLoading={isExiting}
+      />
     </div>
   );
 }
