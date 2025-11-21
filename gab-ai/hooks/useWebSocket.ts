@@ -138,12 +138,28 @@ export function useWebSocketChat(sessionId: string | null) {
       if (message.type === 'session_ended') {
         console.log('Session ended from server:', message.message);
         setConnected(false);
+        
+        // Stop audio playback and clear queue
+        isPlayingRef.current = false;
+        audioQueueRef.current = [];
+        
+        // Close AudioContext
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(err => 
+            console.error('Error closing AudioContext:', err)
+          );
+          audioContextRef.current = null;
+        }
+        
         setMessages((prev) => [...prev, { 
           type: 'session_ended', 
           message: message.message || 'Session has been terminated'
         }]);
-        // WebSocket will close after this message
-        return;
+        
+        if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+          console.log('Closing WebSocket due to session end');
+          ws.current.close();
+        }
       }
 
       // Handle interview ended message
@@ -196,18 +212,20 @@ export function useWebSocketChat(sessionId: string | null) {
     ws.current.onclose = () => {
       console.log('WebSocket disconnected');
       setConnected(false);
-    };
-    const currentWs = ws.current;
-    return () => {
-      // Only close on actual unmount or sessionId change, not on StrictMode cleanup
-      // Check if sessionId still exists and is the same - if not, we're unmounting/changing session
-      if (!sessionId) {
-        // Component is unmounting or sessionId cleared, close the connection
-        if (currentWs && currentWs.readyState !== WebSocket.CLOSED) {
-          currentWs.close();
-        }
+      
+      // Stop audio playback and clear queue
+      isPlayingRef.current = false;
+      audioQueueRef.current = [];
+      
+      // Stop AudioContext if needed
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(err => 
+          console.error('Error closing AudioContext:', err)
+        );
+        audioContextRef.current = null;
       }
     };
+    
   }, [sessionId, getAudioContext, handlePlayAudioQueue]);
 
   // Send message to WebSocket
@@ -228,5 +246,15 @@ export function useWebSocketChat(sessionId: string | null) {
     }
   }, []);
 
-  return { connected, messages, sendMessage };
+  // Close WebSocket connection
+  const closeWebSocket = useCallback(() => {
+    if (ws.current) {
+      ws.current.send(JSON.stringify({ type: 'session_ended', message: 'Client closing connection'}));
+      ws.current.close(1000, 'Client closing connection');
+      console.log('WebSocket connection closed by client');
+      setConnected(false);
+    }
+  }, []);
+
+  return { connected, messages, sendMessage, closeWebSocket };
 }

@@ -19,7 +19,7 @@ export function useFileUpload(): UseFileUploadReturn {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [parsedResume, setParsedResume] = useState<string | null>(null);
-    
+  
     const createFilePreview = (file: File) => {
         console.log('Creating preview for file:', file.type, file.name);
         
@@ -63,14 +63,20 @@ export function useFileUpload(): UseFileUploadReturn {
       
           try {
             const supabase = createClient();
-            const resumeText = await uploadResume(file);
+            const { summary } = await uploadResume(file);
+            const resumeText = summary; 
             setParsedResume(resumeText);
-            console.log('Parsed Resume:', resumeText);
+            console.log('Parsed Resume Text:', resumeText);
             
             const {data} = await supabase.auth.getSession();
             // Save parsed resume to Supabase
             const userID = data.session?.user?.id;
             console.log('Current User ID:', userID);
+
+            if (resumeText && resumeText.toLowerCase() === 'not a resume') {
+              console.log('Uploaded document is not a resume/CV.');
+              throw new Error('Uploaded document is not recognized as a resume/CV.');
+            }
       
             const resumeDBUserID = await supabase.from('resumes').select('id').eq('user_id', userID).single();
             console.log('Existing Resume Check:', resumeDBUserID.data?.id);
@@ -104,7 +110,7 @@ export function useFileUpload(): UseFileUploadReturn {
           createFilePreview(file);
           } catch (err) {
             console.error('Error uploading resume:', err);
-            alert('Failed to process your resume.');
+            alert(err instanceof Error ? err.message : String(err));
           } finally {
             setLoading(false);
           }

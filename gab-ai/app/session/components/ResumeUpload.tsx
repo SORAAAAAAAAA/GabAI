@@ -3,12 +3,8 @@ import { useFileUpload } from '@/app/session/hooks/useFileUpload';
 import SessionLoader from '@/app/session/components/SessionLoader';
 import FilePreview from '@/app/session/components/FilePreview';
 
-interface ResumeUploadProps {
-    onFileUploaded: (resumeText: string) => void;
-}
 
-
-export default function ResumeUpload({ onFileUploaded }: ResumeUploadProps) {
+export default function ResumeUpload() {
     const { selectedFile, filePreview, loading, uploadFile, removeFile } = useFileUpload();
 
     const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,6 +18,7 @@ export default function ResumeUpload({ onFileUploaded }: ResumeUploadProps) {
             alert('Failed to upload file. Please try again.');
             console.log('Upload error:', error);
         }
+        
 
     }
 
@@ -74,7 +71,7 @@ export default function ResumeUpload({ onFileUploaded }: ResumeUploadProps) {
                     </p>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    PDF or DOC files accepted
+                    PDF files accepted
                   </p>
                 </div>
               </label>

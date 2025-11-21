@@ -1,11 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import Logout from '@/components/logout';
 import InterviewSetup from '@/app/session/components/InterviewSetup';
 import ResumeUpload from '@/app/session/components//ResumeUpload';
 
 export default function SessionPage() {
-  const [parsedResume, setParsedResume] = useState('');
 
   return (
     <div className="w-full h-full flex flex-col p-6">
@@ -17,8 +16,8 @@ export default function SessionPage() {
       </div>
 
       <div className="flex space-x-8 flex-1 min-h-0">
-        <InterviewSetup resumeText={parsedResume} />
-        <ResumeUpload onFileUploaded={setParsedResume} />
+        <InterviewSetup  />
+        <ResumeUpload  />
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         const genAI = ai.getGenerativeModel({model:"gemini-2.5-flash-lite"});
 
         const result = await genAI.generateContent([
-            "Highlight the key skills and experiences from this resume that can be use to tailor questions for a job interview.",
+            "Determine the document if its a resume/cv and provide a concise summary of the candidate's qualifications, experience, and skills based on the content of the resume. If not a resume/cv, always respond with this message only do not add anything else:'Not a resume'.",
             {
                 inlineData: {
                     mimeType: 'application/pdf',

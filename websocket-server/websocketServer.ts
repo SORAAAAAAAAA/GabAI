@@ -12,6 +12,24 @@ const supabase = createClient(
   process.env.SERVICE_ROLE_KEY! // Use service role key for server-side operations
 );
 
+// Store active WebSocket connections mapped to sessionId
+const activeConnections = new Map<string, WebSocket>();
+
+// Export function to close connection (can be called from API routes)
+export function closeSessionConnection(sessionId: string) {
+  const ws = activeConnections.get(sessionId);
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    console.log(`[cleanup] Closing WebSocket for session: ${sessionId}`);
+    ws.send(JSON.stringify({
+      type: 'session_ended',
+      message: 'Your interview session has been terminated'
+    }));
+    ws.close(1000, 'Session ended');
+    activeConnections.delete(sessionId);
+  }
+}
+
+
 const server = http.createServer((req, res) => {
     // Set CORS headers - allow only frontend origin
     const allowedOrigin = process.env.ALLOWED_ORIGIN!;
@@ -26,6 +44,33 @@ const server = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
         res.end();
+        return;
+    }
+
+    // Handle close-connection endpoint
+    if (req.method === 'POST' && req.url === '/close-connection') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body);
+                const { sessionId } = data;
+                
+                if (sessionId) {
+                    closeSessionConnection(sessionId);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ message: 'Connection closed successfully' }));
+                } else {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Missing sessionId' }));
+                }
+            } catch (error) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Failed to parse request' }));
+            }
+        });
         return;
     }
     
@@ -126,6 +171,10 @@ wss.on('connection', async (ws, req) => {
         await startLiveInterview(userName, job_title, resume_text);
         console.debug(`Interview started for ${userName} - Position: ${job_title}`);
 
+        // Store the connection for this session
+        activeConnections.set(sessionId, ws);
+        console.log(`[connection] Session ${sessionId} connection stored`);
+
         await continueInterview(
             "Start the interview",
             (chunk) => {
@@ -148,7 +197,7 @@ wss.on('connection', async (ws, req) => {
             type: 'error', 
             error: 'Error starting interview'
         }));
-        return;
+        activeConnections.delete(sessionId);
     }
 
     // Set up message handler for subsequent messages
@@ -184,13 +233,10 @@ wss.on('connection', async (ws, req) => {
                 console.debug("AI response streamed to client");
             }
 
-            if (data.type === 'end_interview') {
-                await endLiveInterview();
-                ws.send(JSON.stringify({
-                    type: 'interview_ended',
-                    message: 'Interview session has ended.'
-                }));
-                ws.close();
+            if (data.type === 'session_ended') {
+                console.log(`[cleanup] Received session_ended for: ${sessionId}`);
+                activeConnections.delete(sessionId);
+                ws.close(1000, 'Session ended by client');
             }
         } catch (error) {
             console.error('Error processing message:', error);
@@ -199,6 +245,18 @@ wss.on('connection', async (ws, req) => {
                 error: 'Failed to process message'
             }));
         }
+    });
+
+    // Handle connection close
+    ws.on('close', () => {
+        console.log(`[close] WebSocket connection closed for session: ${sessionId}`);
+        activeConnections.delete(sessionId);
+    });
+
+    // Handle connection error
+    ws.on('error', (error) => {
+        console.error(`[error] WebSocket error for session ${sessionId}:`, error);
+        activeConnections.delete(sessionId);
     });
 });
 

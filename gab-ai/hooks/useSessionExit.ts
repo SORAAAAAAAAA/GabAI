@@ -13,6 +13,7 @@ export function useSessionExit({ sessionId, isInActiveSession }: UseSessionExitP
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
+  const [exitSession, setExitSession] = useState(false);
 
   const endSession = useCallback(async () => {
     if (!sessionId) return;
@@ -31,6 +32,7 @@ export function useSessionExit({ sessionId, isInActiveSession }: UseSessionExitP
         throw new Error('Failed to end session');
       }
 
+      setExitSession(true);
       return true;
     } catch (error) {
       console.error('Error ending session:', error);
@@ -80,5 +82,6 @@ export function useSessionExit({ sessionId, isInActiveSession }: UseSessionExitP
     handleContinueInterview,
     handleExitSession,
     endSession,
+    exitSession,
   };
 }

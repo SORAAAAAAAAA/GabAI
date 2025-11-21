@@ -21,17 +21,18 @@ export default function ChatbotPage() {
 function ChatbotContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId');  
-
-  const { messages, sendMessage } = useWebSocketChat(sessionId);
   const {
     isConfirmationOpen,
     isExiting,
     handleExitSession,
     handleContinueInterview,
+    exitSession,
   } = useSessionExit({
     sessionId,
     isInActiveSession: true, // Always active in chatbot page
   });
+  
+  const { messages, sendMessage, closeWebSocket } = useWebSocketChat(sessionId);
 
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -118,6 +119,16 @@ function ChatbotContent() {
 
     return () => clearTimeout(timer);
   }, [inputText, isListening, sendMessage, sessionId]);
+
+  useEffect(() => {
+    if (exitSession && sessionId) {
+      sendMessage({
+        type: 'session_ended',
+        sessionId: sessionId,
+      });
+      closeWebSocket();
+    }
+  }, [exitSession, sessionId, sendMessage, closeWebSocket])
 
   // Auto-scroll to latest message
   useEffect(() => {

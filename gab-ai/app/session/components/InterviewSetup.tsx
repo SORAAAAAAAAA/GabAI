@@ -2,19 +2,16 @@ import React, { useState } from 'react';
 import { useSessionStart } from '../hooks/useSessionStart';
 import SessionLoader from './SessionLoader';
 
-interface InterviewSetupProps {
-  resumeText: string;
-}
 
-export default function InterviewSetup({ resumeText }: InterviewSetupProps) {
+export default function InterviewSetup() {
   const [jobRole, setJobRole] = useState('');
   const { sessionStart, startInterview } = useSessionStart();
 
   const handleStart = async () => {
     try {
-      await startInterview(jobRole, resumeText);
+      await startInterview(jobRole);
     } catch (error) {
-      alert('Failed to start session');
+      alert(error instanceof Error ? error.message : String(error));
       console.error('Start session error:', error);
     }
   };
