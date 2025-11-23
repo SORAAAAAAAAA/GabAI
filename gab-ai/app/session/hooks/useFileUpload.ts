@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { uploadResume } from '@/utils/api/api.uploadResume';
-import { createClient } from '@/lib/supabase/supabaseClient';
+import { createClient } from '@/infra/supabase/supabaseClient';
 
 
 interface UseFileUploadReturn {

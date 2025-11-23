@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/supabaseServer";
+import { createClient } from "@/infra/supabase/supabaseServer";
 
 export async function POST(req: Request) {
   try {

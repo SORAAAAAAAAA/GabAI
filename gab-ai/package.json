@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@deepgram/sdk": "^4.11.2",
     "@google/genai": "^1.25.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.7.0",

@@ -4,8 +4,8 @@ import { useRef } from 'react';
 import { useWebSocketChat } from '@/hooks/useWebSocket';
 import { useSessionExit } from '@/hooks/useSessionExit';
 import { useSearchParams } from 'next/navigation';
-import type { SpeechRecognitionEvent } from '@/types/speech';
 import SessionExitConfirmation from '@/app/session/components/SessionExitConfirmation';
+import { closeSessionAPI } from '@/utils/api/api.closeSession';
 
 
 // Main component that uses useSearchParams wrapped in Suspense
@@ -26,17 +26,18 @@ function ChatbotContent() {
     isExiting,
     handleExitSession,
     handleContinueInterview,
-    exitSession,
   } = useSessionExit({
     sessionId,
     isInActiveSession: true, // Always active in chatbot page
   });
   
-  const { messages, sendMessage, closeWebSocket } = useWebSocketChat(sessionId);
+  const { messages, sendMessage } = useWebSocketChat(sessionId);
 
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<object | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Detect if AI is currently speaking by checking only the most recent ai_chunk
@@ -51,55 +52,21 @@ function ChatbotContent() {
     return false; // No ai_chunk found, AI is not speaking
   })();
 
-  // Initialize SpeechRecognition on component mount
+  // Initialize MediaRecorder on component mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const SpeechRecognitionAPI = ((window as unknown) as Record<string, unknown>).SpeechRecognition || ((window as unknown) as Record<string, unknown>).webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      console.warn('SpeechRecognition not supported in this browser');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.warn('MediaRecorder not supported in this browser');
       return;
     }
 
-    const recognition = new (SpeechRecognitionAPI as unknown as new () => object)();
-    const recognitionObj = recognition as Record<string, unknown>;
-    
-    recognitionObj.continuous = false;
-    recognitionObj.interimResults = true;
-    recognitionObj.lang = 'en-US';
-
-    recognitionObj.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognitionObj.onresult = (event: SpeechRecognitionEvent) => {
-      let transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+    return () => {
+      // Cleanup
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
-      setInputText(transcript);
     };
-
-    recognitionObj.onerror = (event: Event) => {
-      const errorEvent = event as unknown as { error: string };
-      console.error('Speech recognition error:', errorEvent.error);
-      
-      if (errorEvent.error === 'not-allowed') {
-        console.warn('Microphone permission denied. Please enable microphone in browser settings.');
-        alert('Microphone permission denied. Please enable microphone access in your browser settings and refresh the page.');
-      } else if (errorEvent.error === 'no-speech') {
-        console.warn('No speech detected. Please try again.');
-      } else if (errorEvent.error === 'network') {
-        console.warn('Network error. Please check your connection.');
-      }
-      setIsListening(false);
-    };
-
-    recognitionObj.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
   }, []);
 
   // Auto-send message when speech ends
@@ -120,53 +87,72 @@ function ChatbotContent() {
     return () => clearTimeout(timer);
   }, [inputText, isListening, sendMessage, sessionId]);
 
-  useEffect(() => {
-    if (exitSession && sessionId) {
-      sendMessage({
-        type: 'session_ended',
-        sessionId: sessionId,
-      });
-      closeWebSocket();
-    }
-  }, [exitSession, sessionId, sendMessage, closeWebSocket])
-
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Speech-to-Text: Start listening using Web Speech API
+  // Start recording audio using MediaRecorder
   const startListening = async () => {
-    if (isListening || !recognitionRef.current) return;
+    if (isListening) return;
     
     try {
-      // Request microphone permission first
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (err) {
-          console.error('Microphone permission denied:', err);
-          alert('Microphone permission denied. Please enable microphone access in browser settings.');
-          return;
-        }
-      }
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       
-      setInputText('');
-      const recognition = recognitionRef.current as unknown as { 
-        start: () => void;
+      // Create MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      // Collect audio chunks
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
-      recognition.start();
+      
+      // Handle recording end
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // Send audio blob to backend for transcription
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        formData.append('sessionId', sessionId || '');
+        
+        try {
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          const data = await response.json();
+          if (data.transcript) {
+            setInputText(data.transcript);
+          }
+        } catch (error) {
+          console.error('Error transcribing audio:', error);
+        }
+        
+        // Stop stream tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      setIsListening(true);
+      mediaRecorder.start();
     } catch (error) {
-      console.error('Error starting speech recognition:', error);
-      alert('Could not start microphone. Please check your browser permissions.');
+      console.error('Error starting microphone:', error);
+      alert('Microphone permission denied. Please enable microphone access in browser settings.');
     }
   };
 
-  // Stop listening
+  // Stop recording
   const stopListening = () => {
-    if (!recognitionRef.current) return;
-    const recognition = recognitionRef.current as unknown as { stop: () => void };
-    recognition.stop();
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+    mediaRecorderRef.current.stop();
+    setIsListening(false);
   };
 
 
@@ -196,7 +182,7 @@ function ChatbotContent() {
 
             {/* End Session Button */}
             <button
-              onClick={handleExitSession}
+              onClick={async () => { if (sessionId) { await closeSessionAPI(sessionId); handleExitSession(); } }}
               disabled={isExiting}
               className="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >

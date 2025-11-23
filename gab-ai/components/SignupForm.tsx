@@ -1,6 +1,6 @@
 'use client';
 import AuthCard from "@/components/authCard"
-import { createClient } from "@/lib/supabase/supabaseClient";
+import { createClient } from "@/infra/supabase/supabaseClient";
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
 

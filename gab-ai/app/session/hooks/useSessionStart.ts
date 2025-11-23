@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { startSession } from '@/utils/api/api.startSession';
-import { createClient } from '@/lib/supabase/supabaseClient';
+import { createClient } from '@/infra/supabase/supabaseClient';
 import { UUID } from 'crypto';
 
 

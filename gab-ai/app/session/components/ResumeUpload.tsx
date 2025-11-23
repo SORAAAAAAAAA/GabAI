@@ -62,17 +62,30 @@ export default function ResumeUpload() {
               />
               <label htmlFor="resume-upload" className="cursor-pointer block">
                 <div className="flex flex-col items-center gap-4">
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900 mb-1">
-                      Drop your Resume here
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      or click to browse your files
-                    </p>
+                  {/* Upload Icon */}
+                  <div className="bg-blue-100 p-4 rounded-full">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    PDF files accepted
-                  </p>
+                  
+                  {/* Text Content */}
+                  <div>
+                    <p className="text-xl font-bold text-gray-900 mb-2">
+                      Upload Your Resume
+                    </p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Drag and drop your PDF here or click to browse
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                        PDF
+                      </span>
+                      <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                        Or start interview to use previous
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </label>
             </div>

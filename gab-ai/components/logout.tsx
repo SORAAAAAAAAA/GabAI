@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/supabaseClient';
+import { createClient } from '@/infra/supabase/supabaseClient';
 
 interface User {
   id: string;
