@@ -81,7 +81,6 @@ export default function Dashboard() {
               onClick={() => router.push('/session')} 
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
             >
-              <span className="text-xl">🎤</span>
               <span>Start New Interview</span>
             </button>
           </div>

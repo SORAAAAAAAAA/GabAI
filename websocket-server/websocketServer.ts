@@ -44,8 +44,6 @@ wss.on('connection', async (ws, req) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionToken');
     
-    // Per-session conversation storage
-    
     console.log(`[connection] New WebSocket connection from sessionToken: ${sessionId}`);
     
     if (!sessionId) {
@@ -78,7 +76,7 @@ wss.on('connection', async (ws, req) => {
         let initialMessage = '';
 
         await continueInterview(
-            "Start the interview by asking the first question.",
+            {initialMsg: "Start the interview session and greet the user."},
             (chunk) => {
                 // Stream each chunk to the frontend as it arrives
                 ws.send(JSON.stringify({
@@ -89,10 +87,8 @@ wss.on('connection', async (ws, req) => {
                         isComplete: chunk.isComplete
                     }
                 }));
-
                 // Append text from this chunk
                 initialMessage += chunk.text;
-                
             }
         );
         conversation += "AI Response: " + initialMessage + '\n'; 
@@ -105,8 +101,7 @@ wss.on('connection', async (ws, req) => {
         }));
         activeConnections.delete(sessionId);
     }
-
-    // Set up message handler for subsequent messages
+    // Handle incoming messages from client
     ws.on('message', async (message: string) => {
         try {
             const data = JSON.parse(message);
@@ -116,7 +111,7 @@ wss.on('connection', async (ws, req) => {
             if (data.type === 'user_message') {
 
                 await continueInterview(
-                    data.message,
+                    [{ "role": "user", "parts": [{"audio": data.audioMessage, "text": data.message}]}],
                     (chunk) => {
                         // Stream each chunk to the frontend as it arrives
                         ws.send(JSON.stringify({

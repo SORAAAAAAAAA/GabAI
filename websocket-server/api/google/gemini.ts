@@ -1,6 +1,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav, bufferToBase64 } from "../../services/fileConvertService";
 import { createSystemInstruction } from "../../services/systemInstruction";
+import { convertWebMTo16BitPCM } from "../../services/audioConvert";
 
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string});
@@ -16,6 +17,10 @@ export async function startLiveInterview(  name: string, job: string, resume: st
  
   const config = { 
     responseModalities: [Modality.AUDIO],
+    thinkingConfig: {
+    thinkingBudget: 5000,
+    includeThoughts: true,
+  },
     systemInstruction: {
       parts: [{text: systemInstruction}]
     },
@@ -27,12 +32,9 @@ export async function startLiveInterview(  name: string, job: string, resume: st
     },
   }
 
-  responseQueue = [];
-
   // Wait for the session to connect and be fully ready
   liveSession = await ai.live.connect({
     model: model,
-    config: config,
     callbacks: {
       onopen: function () {
         console.debug('Live session opened Successfully');
@@ -48,12 +50,11 @@ export async function startLiveInterview(  name: string, job: string, resume: st
         console.debug('Connection Closed:', e.reason);
       },
     },
+    config: config,
   });
 
-  console.debug("Live Interview Session started and ready");
   return {success: true};
 }
-
 
 async function waitMessage() {
   let done = false;
@@ -65,18 +66,37 @@ async function waitMessage() {
     } else {
       await new Promise((resolve) => setTimeout(resolve, 100) ); // wait 100ms
     }
+    console.debug("Message polled from queue:", message ? message.serverContent?.modelTurn?.parts[0] : "No message yet");
   } return message;
 }
 
-
-export async function continueInterview(userMessage: string, onChunk?: (chunk: {text: string, audioBase64: string, isComplete: boolean}) => void) {
+export async function continueInterview(userMessage: any, onChunk?: (chunk: {text: string, audioBase64: string, isComplete: boolean}) => void) {
   if (!liveSession) {
     throw new Error("Interview not started. Please call startLiveInterview() first.");
   }
+  // Prepare audio if present
+  let base64Audio = "";
+  // Only convert audio if it exists
+  if (userMessage.audioMessage) {
+    console.debug(userMessage.audioMessage);
+    const fileBuffer = await convertWebMTo16BitPCM(userMessage.audioMessage);
+    base64Audio = Buffer.from(fileBuffer).toString('base64');
 
-  liveSession.sendClientContent({turns: userMessage});
-
+    liveSession.sendRealtimeInput({
+      audio: {
+        data: base64Audio,
+        mimeType: "audio/pcm;rate=16000"
+      }
+    });
+  }
+  const initialMessage = userMessage?.initialMsg;
+  if (initialMessage) {
+    console.debug("Initial Message: ", initialMessage);
+    liveSession.sendClientContent({turns: initialMessage, turnComplete: true});
+  }
+  
   let done = false;
+  let isComplete = false;
 
   while (!done) {
     const message = await waitMessage();
@@ -109,22 +129,22 @@ export async function continueInterview(userMessage: string, onChunk?: (chunk: {
     audioBase64 = wavBuffer ? bufferToBase64(wavBuffer) : "";
 
     // Check if turn is complete
-    const isComplete = message.serverContent?.turnComplete === true;
-    
+    if (message.serverContent && message.serverContent.turnComplete) {
+      console.debug("Turn complete received.");
+      done = true;
+      isComplete = true;
+    }
     // Stream this chunk to the callback
     if (onChunk && (chunkText || audioBase64)) {
       onChunk({
         text: chunkText,
         audioBase64: audioBase64,
-        isComplete: isComplete
+        isComplete: isComplete,
       });
-    }
-
-    if (isComplete) {
-      done = true;
     }
   }
 
+  console.debug("continueInterview completed.");
   return { success: true };
 }
   

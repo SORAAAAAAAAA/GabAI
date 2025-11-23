@@ -6,6 +6,7 @@ import { useSessionExit } from '@/hooks/useSessionExit';
 import { useSearchParams } from 'next/navigation';
 import SessionExitConfirmation from '@/app/session/components/SessionExitConfirmation';
 import { closeSessionAPI } from '@/utils/api/api.closeSession';
+import { transcribeAPI } from '@/utils/api/api.transcribe';
 
 
 // Main component that uses useSearchParams wrapped in Suspense
@@ -33,7 +34,7 @@ function ChatbotContent() {
   
   const { messages, sendMessage } = useWebSocketChat(sessionId);
 
-  const [inputText, setInputText] = useState("");
+  // const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -69,24 +70,6 @@ function ChatbotContent() {
     };
   }, []);
 
-  // Auto-send message when speech ends
-  useEffect(() => {
-    if (!inputText.trim() || isListening) return;
-
-    const timer = setTimeout(() => {
-      if (inputText.trim()) {
-        sendMessage({
-          type: 'user_message',
-          message: inputText,
-          sessionId: sessionId,
-        });
-        setInputText('');
-      }
-    }, 1000); // Wait 1 second after user stops talking to auto-send
-
-    return () => clearTimeout(timer);
-  }, [inputText, isListening, sendMessage, sessionId]);
-
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,7 +95,6 @@ function ChatbotContent() {
           audioChunksRef.current.push(event.data);
         }
       };
-      
       // Handle recording end
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
@@ -123,15 +105,19 @@ function ChatbotContent() {
         formData.append('sessionId', sessionId || '');
         
         try {
-          const response = await fetch('/api/transcribe', {
-            method: 'POST',
-            body: formData,
-          });
-          
+          const response = await transcribeAPI(formData);
           const data = await response.json();
+          
           if (data.transcript) {
-            setInputText(data.transcript);
+            // setInputText(data.transcript);
+            
+            sendMessage({
+              type: 'user_message',
+              message: data.transcript,
+              sessionId: sessionId,
+            });
           }
+          
         } catch (error) {
           console.error('Error transcribing audio:', error);
         }
@@ -154,6 +140,21 @@ function ChatbotContent() {
     mediaRecorderRef.current.stop();
     setIsListening(false);
   };
+
+  async function handleCloseSession() {
+
+    const response = await closeSessionAPI(sessionId!);
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop()
+    });
+    }
+
+    console.log('Media stream stopped and session closed.', response);
+
+
+  }
 
 
   return (
@@ -182,7 +183,7 @@ function ChatbotContent() {
 
             {/* End Session Button */}
             <button
-              onClick={async () => { if (sessionId) { await closeSessionAPI(sessionId); handleExitSession(); } }}
+              onClick={async () => { if (sessionId) {  await handleCloseSession(); handleExitSession(); } }}
               disabled={isExiting}
               className="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
@@ -217,9 +218,7 @@ function ChatbotContent() {
               
               if (msg.type === 'ai_chunk') {
                 messageText = (msg.data as Record<string, unknown>)?.text as string || '';
-              } else if (msg.type === 'message') {
-                messageText = (msg.data as Record<string, unknown>)?.content as string || '';
-              } else if (msg.type === 'user_message') {
+              }  else if (msg.type === 'user_message') {
                 messageText = (msg.data as Record<string, unknown>)?.content as string || '';
               }
               
@@ -248,13 +247,6 @@ function ChatbotContent() {
       <div className="flex-shrink-0 bg-white border-t border-gray-200 px-8 py-6 shadow-lg">
         <div className="max-w-4xl mx-auto">
           {/* Transcript Display */}
-          {inputText && (
-            <div className="bg-gray-50 border border-gray-200 text-gray-900 px-6 py-4 rounded-xl mb-6 text-center">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Your message</p>
-              <p className="text-base leading-relaxed text-gray-900">{inputText}</p>
-              <p className="text-xs text-gray-400 mt-2">Sending when you stop talking...</p>
-            </div>
-          )}
           
           {/* Voice Button and Info */}
           <div className="flex flex-col items-center gap-4">
