@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { EvaluationData } from '@/types/evaluation';
 
 interface WebSocketMessage {
+  id?: string; // Unique identifier for tracking
   type: 'message' | 'error' | 'connected' | 'ai_chunk' | 'user_message' | 'session_ended' | 'interview_ended';
   data?: unknown;
   error?: string;
@@ -186,9 +187,13 @@ export function useWebSocketChat(sessionId: string | null) {
       if (message.type === 'ai_chunk') {
         const chunkData = message.data as { text: string; audioBase64: string; evaluation?: string; isComplete: boolean };
         
+        let evaluationData: EvaluationData | null = null;
         if (chunkData.evaluation) {
           console.log('Received evaluation data:', chunkData.evaluation);
-          setEvaluation(JSON.parse(chunkData.evaluation));
+          evaluationData = typeof chunkData.evaluation === 'string' 
+            ? JSON.parse(chunkData.evaluation) 
+            : chunkData.evaluation;
+          setEvaluation(evaluationData);
         };
 
         // Queue audio for playback
@@ -208,10 +213,21 @@ export function useWebSocketChat(sessionId: string | null) {
               text: ((lastMsg.data as { text: string }).text || '') + chunkData.text,
               isComplete: chunkData.isComplete
             };
-            return [...prev.slice(0, -1), { type: 'ai_chunk', data: updatedData }];
+            const updatedMsg = { ...lastMsg, type: 'ai_chunk' as const, data: updatedData };
+            if (evaluationData) {
+              updatedMsg.evaluation = evaluationData;
+            }
+            return [...prev.slice(0, -1), updatedMsg];
           } else {
             // Start new chunk message
-            return [...prev, { type: 'ai_chunk', data: { text: chunkData.text, isComplete: chunkData.isComplete } }];
+            const newMsg: WebSocketMessage = { 
+              type: 'ai_chunk', 
+              data: { text: chunkData.text, isComplete: chunkData.isComplete }
+            };
+            if (evaluationData) {
+              newMsg.evaluation = evaluationData;
+            }
+            return [...prev, newMsg];
           }
         });
       } else {
@@ -251,10 +267,12 @@ export function useWebSocketChat(sessionId: string | null) {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
       
-      // Add user message to local messages state for display
+      // Add user message to local messages state for display with unique ID
       const msgObj = message as Record<string, unknown>;
       if (msgObj.type === 'user_message') {
+        const messageId = `msg_${Date.now()}_${Math.random()}`;
         setMessages((prev) => [...prev, {
+          id: messageId,
           type: 'user_message',
           data: { content: msgObj.message as string }
         }]);

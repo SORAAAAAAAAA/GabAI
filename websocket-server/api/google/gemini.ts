@@ -23,7 +23,7 @@ export async function startLiveInterview(  name: string, job: string, resume: st
   responseModalities: [Modality.AUDIO],
   tools: tools,
   thinkingConfig: {
-    thinkingBudget: 5000,
+    thinkingBudget: 10000,
     includeThoughts: true,
   },
   systemInstruction: {
@@ -90,12 +90,10 @@ export async function continueInterview(userMessage: any, onChunk?: (chunk: {tex
       throw new Error("No user message provided.");
   }
 
-  liveSession.sendClientContent({ turns: [{ role: "user", parts: [{ text: userMessage }] }] });
-  // Prepare audio if present
+  liveSession.sendClientContent({ turns: userMessage});
   
   let done = false;
   
-
   while (!done) {
     const message = await waitMessage();
     
@@ -160,7 +158,7 @@ export async function continueInterview(userMessage: any, onChunk?: (chunk: {tex
     audioBase64 = wavBuffer ? bufferToBase64(wavBuffer) : "";
 
     // Check if turn is complete
-    if (message.serverContent && message.serverContent.turnComplete) {
+    if (message.serverContent && message.serverContent.generationComplete) {
       console.debug("Turn complete received.");
       done = true;
       isComplete = true;

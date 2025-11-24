@@ -8,7 +8,6 @@ import SessionExitConfirmation from '@/app/session/components/SessionExitConfirm
 import { closeSessionAPI } from '@/utils/api/api.closeSession';
 import { transcribeAPI } from '@/utils/api/api.transcribe';
 import EvaluationDisplay from '@/app/session/components/EvaluationDisplay';
-import { EvaluationData } from '@/types/evaluation';
 
 
 // Main component that uses useSearchParams wrapped in Suspense
@@ -34,18 +33,7 @@ function ChatbotContent() {
     isInActiveSession: true, // Always active in chatbot page
   });
   
-  const { evaluation, messages, sendMessage } = useWebSocketChat(sessionId);
-
-  // Store all evaluations in a list for persistence and mapping
-  const [evaluationList, setEvaluationList] = useState<EvaluationData[]>([]);
-
-  // Update evaluation list whenever a new evaluation comes in
-  useEffect(() => {
-    if (evaluation) {
-      // Store the full evaluation data
-      setEvaluationList(prev => [...prev, evaluation]);
-    }
-  }, [evaluation]);
+  const { messages, sendMessage } = useWebSocketChat(sessionId);
 
   // const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -251,13 +239,19 @@ function ChatbotContent() {
                     </div>
                   </div>
 
-                  {/* Display Evaluation if present (only for AI messages) */}
-                  {!isAI && evaluationList.length > 0 && (
-                    <div className="max-w-2xl w-full space-y-2">
-                      {evaluationList.map((evalData, evalIndex) => (
-                        <EvaluationDisplay key={evalIndex} data={evalData} />
-                      ))}
-                    </div>
+                  {/* Display Evaluation if present - check next AI message for evaluation of this user message */}
+                  {!isAI && index + 1 < messages.length && (
+                    (() => {
+                      const nextMsg = messages[index + 1];
+                      if (nextMsg?.type === 'ai_chunk' && nextMsg?.evaluation) {
+                        return (
+                          <div className="max-w-2xl w-full">
+                            <EvaluationDisplay data={nextMsg.evaluation} />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()
                   )}
                 </div>
               );

@@ -40,6 +40,7 @@ const wss = new WebSocketServer({
 
 wss.on('connection', async (ws, req) => {
     let conversation = '';
+    const evaluationList: any[] = [];
     // Extract sessionId from WebSocket URL query parameters
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionToken');
@@ -76,7 +77,7 @@ wss.on('connection', async (ws, req) => {
         let initialMessage = '';
 
         await continueInterview(
-            "Start the interview.",
+            "After you received this message, initiate the Interview and ask the candidate the first question. Do not end the first turn without a response to the candidate.",
             (chunk) => {
                 // Stream each chunk to the frontend as it arrives
                 ws.send(JSON.stringify({
@@ -115,6 +116,21 @@ wss.on('connection', async (ws, req) => {
                 await continueInterview(
                     data.message,
                     (chunk) => {
+                        // Log evaluation if present
+                        if (chunk.evaluation) {
+                            evaluationList.push(chunk.evaluation);
+                            console.log('\n✅ EVALUATION RECEIVED (Turn #' + evaluationList.length + ')');
+                            console.log('━'.repeat(50));
+                            console.log('📊 SCORES:');
+                            console.log(`   • Confidence: ${chunk.evaluation.scores.confidence_score}/10`);
+                            console.log(`   • Clarity: ${chunk.evaluation.scores.clarity_score}/10`);
+                            console.log(`   • Relevance: ${chunk.evaluation.scores.relevance_score}/10`);
+                            console.log('💡 FEEDBACK:');
+                            console.log(`   Strengths: ${chunk.evaluation.feedback.strengths.join(', ')}`);
+                            console.log(`   Improvement: ${chunk.evaluation.feedback.improvement_tip}`);
+                            console.log('━'.repeat(50) + '\n');
+                        }
+
                         // Stream each chunk to the frontend as it arrives
                         ws.send(JSON.stringify({
                             type: 'ai_chunk',
@@ -147,6 +163,29 @@ wss.on('connection', async (ws, req) => {
 
     // Handle connection close
     ws.on('close', async () => {
+        // Print evaluation summary
+        if (evaluationList.length > 0) {
+            console.log('\n\n' + '═'.repeat(60));
+            console.log('📋 INTERVIEW EVALUATION SUMMARY');
+            console.log('═'.repeat(60));
+            
+            evaluationList.forEach((evaluation, index) => {
+                const avgScore = (evaluation.scores.confidence_score + evaluation.scores.clarity_score + evaluation.scores.relevance_score) / 3;
+                console.log(`\nTurn #${index + 1}:`);
+                console.log(`  Average Score: ${avgScore.toFixed(1)}/10`);
+                console.log(`  Scores: Confidence=${evaluation.scores.confidence_score}, Clarity=${evaluation.scores.clarity_score}, Relevance=${evaluation.scores.relevance_score}`);
+                console.log(`  Strengths: ${evaluation.feedback.strengths.join(', ')}`);
+                console.log(`  Improvement: ${evaluation.feedback.improvement_tip}`);
+            });
+            
+            const overallAvg = evaluationList.reduce((sum, evaluation) => 
+                sum + (evaluation.scores.confidence_score + evaluation.scores.clarity_score + evaluation.scores.relevance_score) / 3, 0
+            ) / evaluationList.length;
+            
+            console.log(`\n📊 Overall Average Score: ${overallAvg.toFixed(1)}/10`);
+            console.log('═'.repeat(60) + '\n');
+        }
+        
         // Store the conversation in Supabase for this session
         try {
             await storeSupabaseConversation(sessionId, conversation);
