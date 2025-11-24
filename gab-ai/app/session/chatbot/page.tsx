@@ -7,6 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import SessionExitConfirmation from '@/app/session/components/SessionExitConfirmation';
 import { closeSessionAPI } from '@/utils/api/api.closeSession';
 import { transcribeAPI } from '@/utils/api/api.transcribe';
+import EvaluationDisplay from '@/app/session/components/EvaluationDisplay';
+import { EvaluationData } from '@/types/evaluation';
 
 
 // Main component that uses useSearchParams wrapped in Suspense
@@ -32,7 +34,18 @@ function ChatbotContent() {
     isInActiveSession: true, // Always active in chatbot page
   });
   
-  const { messages, sendMessage } = useWebSocketChat(sessionId);
+  const { evaluation, messages, sendMessage } = useWebSocketChat(sessionId);
+
+  // Store all evaluations in a list for persistence and mapping
+  const [evaluationList, setEvaluationList] = useState<EvaluationData[]>([]);
+
+  // Update evaluation list whenever a new evaluation comes in
+  useEffect(() => {
+    if (evaluation) {
+      // Store the full evaluation data
+      setEvaluationList(prev => [...prev, evaluation]);
+    }
+  }, [evaluation]);
 
   // const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -226,16 +239,26 @@ function ChatbotContent() {
               if (!messageText) return null;
               
               return (
-                <div key={index} className={`flex ${isAI ? 'justify-start' : 'justify-end'} px-6`}>
-                  <div
-                    className={`max-w-2xl px-5 py-3 rounded-2xl shadow-sm ${
-                      isAI
+                <div key={index} className={`flex flex-col ${isAI ? 'items-start' : 'items-end'} px-6 space-y-2`}>
+                  <div className={`flex ${isAI ? 'justify-start' : 'justify-end'} w-full`}>
+                    <div
+                      className={`max-w-2xl px-5 py-3 rounded-2xl shadow-sm ${isAI
                         ? 'bg-white text-gray-900 border border-gray-200 rounded-tl-none'
                         : 'bg-blue-600 text-white rounded-tr-none'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed">{messageText}</p>
+                        }`}
+                    >
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{messageText}</p>
+                    </div>
                   </div>
+
+                  {/* Display Evaluation if present (only for AI messages) */}
+                  {!isAI && evaluationList.length > 0 && (
+                    <div className="max-w-2xl w-full space-y-2">
+                      {evaluationList.map((evalData, evalIndex) => (
+                        <EvaluationDisplay key={evalIndex} data={evalData} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })

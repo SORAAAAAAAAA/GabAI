@@ -108,6 +108,7 @@ wss.on('connection', async (ws, req) => {
             const data = JSON.parse(message);
 
             let aiMsg = '';
+            let evaluation: any = null;
 
             if (data.type === 'user_message') {
 
@@ -120,7 +121,7 @@ wss.on('connection', async (ws, req) => {
                             data: {
                                 text: chunk.text,
                                 audioBase64: chunk.audioBase64,
-                                evaluation: chunk.evaluation,
+                                evaluation: chunk.evaluation ? JSON.stringify(chunk.evaluation) : null,
                                 isComplete: chunk.isComplete,
                             }
                         }));

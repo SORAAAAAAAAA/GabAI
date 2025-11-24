@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { EvaluationData } from '@/types/evaluation';
 
 interface WebSocketMessage {
   type: 'message' | 'error' | 'connected' | 'ai_chunk' | 'user_message' | 'session_ended' | 'interview_ended';
   data?: unknown;
   error?: string;
+  evaluation?: EvaluationData | null;
   message?: string;
 }
 
@@ -11,6 +13,7 @@ export function useWebSocketChat(sessionId: string | null) {
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
+  const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -132,7 +135,17 @@ export function useWebSocketChat(sessionId: string | null) {
 
     ws.current.onmessage = (event) => {
       console.log('Message from server:', event.data);
-      const message = JSON.parse(event.data);
+      let message;
+      try {
+        message = JSON.parse(event.data);
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error, 'Raw data:', event.data);
+        setMessages((prev) => [...prev, { 
+          type: 'error', 
+          error: 'Failed to parse server message' 
+        }]);
+        return;
+      }
       
       // Handle session ended message
       if (message.type === 'session_ended') {
@@ -173,6 +186,11 @@ export function useWebSocketChat(sessionId: string | null) {
       if (message.type === 'ai_chunk') {
         const chunkData = message.data as { text: string; audioBase64: string; evaluation?: string; isComplete: boolean };
         
+        if (chunkData.evaluation) {
+          console.log('Received evaluation data:', chunkData.evaluation);
+          setEvaluation(JSON.parse(chunkData.evaluation));
+        };
+
         // Queue audio for playback
         if (chunkData.audioBase64) {
           console.log('Received audio chunk, adding to queue');
@@ -256,5 +274,5 @@ export function useWebSocketChat(sessionId: string | null) {
     }
   }, []);
 
-  return { connected, messages, sendMessage, closeWebSocket };
+  return { connected, messages, sendMessage, evaluation, closeWebSocket };
 }
