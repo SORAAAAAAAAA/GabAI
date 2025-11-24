@@ -76,7 +76,7 @@ wss.on('connection', async (ws, req) => {
         let initialMessage = '';
 
         await continueInterview(
-            {initialMsg: "Start the interview session and greet the user."},
+            "Start the interview.",
             (chunk) => {
                 // Stream each chunk to the frontend as it arrives
                 ws.send(JSON.stringify({
@@ -84,6 +84,7 @@ wss.on('connection', async (ws, req) => {
                     data: {
                         text: chunk.text,
                         audioBase64: chunk.audioBase64,
+                        evaluation: chunk.evaluation,
                         isComplete: chunk.isComplete
                     }
                 }));
@@ -111,14 +112,17 @@ wss.on('connection', async (ws, req) => {
             if (data.type === 'user_message') {
 
                 await continueInterview(
-                    [{ "role": "user", "parts": [{"audio": data.audioMessage, "text": data.message}]}],
+                    data.message,
                     (chunk) => {
                         // Stream each chunk to the frontend as it arrives
                         ws.send(JSON.stringify({
                             type: 'ai_chunk',
-                            data: chunk.text,
-                            audioBase64: chunk.audioBase64,
-                            isComplete: chunk.isComplete,
+                            data: {
+                                text: chunk.text,
+                                audioBase64: chunk.audioBase64,
+                                evaluation: chunk.evaluation,
+                                isComplete: chunk.isComplete,
+                            }
                         }));
 
                     aiMsg += chunk.text;

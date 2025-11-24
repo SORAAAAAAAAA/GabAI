@@ -5,6 +5,7 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export async function POST(request: NextRequest) {
   try {
+
     const formData = await request.formData();
     const audioFile = formData.get('audio') as Blob;
     
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     const base64Audio = buffer.toString('base64');
 
     const contents = [
-  { text: "Transcribe the human speech in the provided audio file strictly in English or Filipino. Ignore all background noise, music, non-human sounds, and speech in any other languages. If a segment is unintelligible, omit it entirely. Output only the raw transcript text. Do not include timestamps, speaker labels, or any introductory or concluding remarks."},
+  { text: "Transcribe the human speech in the provided audio file strictly in English or Filipino based on the audio content. Ignore all background noise, music, non-human sounds, and speech in any other languages. If a segment is unintelligible, omit it entirely. Output only the raw transcript text. Do not include timestamps, speaker labels, or any introductory or concluding remarks."},
   {
     inlineData: {
       mimeType: "audio/webm",
@@ -32,13 +33,8 @@ export async function POST(request: NextRequest) {
 
     // Transcribe audio using Gemini
     const result = await genAI.models.generateContentStream({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: contents,
-      config: {
-        thinkingConfig: {
-        thinkingBudget: 0, // Disables thinking
-      },
-      }
     });
 
     let transcript = '';

@@ -1,36 +1,46 @@
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI, Modality, type LiveConnectConfig, type Tool, type ToolUnion, FunctionResponseScheduling } from "@google/genai";
 import { pcmToWav, bufferToBase64 } from "../../services/fileConvertService";
 import { createSystemInstruction } from "../../services/systemInstruction";
 import { convertWebMTo16BitPCM } from "../../services/audioConvert";
+import { evaluationTool } from "../../services/tools";
 
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string});
 
 let liveSession: any = null;
 let responseQueue: any[] = [];
+let conversation: string[] = [];
 
 export async function startLiveInterview(  name: string, job: string, resume: string, localtime: string) {
 
   const model = "gemini-2.5-flash-native-audio-preview-09-2025";
   
   const systemInstruction = createSystemInstruction(name, resume, job, localtime);
+
+  const tools = [{ functionDeclarations: [evaluationTool] }];
  
   const config = { 
-    responseModalities: [Modality.AUDIO],
-    thinkingConfig: {
+  responseModalities: [Modality.AUDIO],
+  tools: tools,
+  thinkingConfig: {
     thinkingBudget: 5000,
     includeThoughts: true,
   },
-    systemInstruction: {
-      parts: [{text: systemInstruction}]
-    },
-    outputAudioTranscription: {},
-    speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Gacrux' },
-        }
-    },
+  systemInstruction: {
+    parts: [{ text: systemInstruction }]
+  },
+  outputAudioTranscription: {},
+  speechConfig: {
+    voiceConfig: {
+      prebuiltVoiceConfig: { voiceName: 'Gacrux' },
+    }
+  },
+  toolConfig: {
+    functionCallingConfig: {
+      mode: 'AUTO'
+    }
   }
+}
 
   // Wait for the session to connect and be fully ready
   liveSession = await ai.live.connect({
@@ -52,8 +62,9 @@ export async function startLiveInterview(  name: string, job: string, resume: st
     },
     config: config,
   });
-
-  return {success: true};
+  if (liveSession) {
+    return {success: true};
+  }
 }
 
 async function waitMessage() {
@@ -70,33 +81,20 @@ async function waitMessage() {
   } return message;
 }
 
-export async function continueInterview(userMessage: any, onChunk?: (chunk: {text: string, audioBase64: string, isComplete: boolean}) => void) {
+export async function continueInterview(userMessage: any, onChunk?: (chunk: {text: string, audioBase64: string, evaluation?: any, isComplete: boolean}) => void) {
   if (!liveSession) {
     throw new Error("Interview not started. Please call startLiveInterview() first.");
   }
-  // Prepare audio if present
-  let base64Audio = "";
-  // Only convert audio if it exists
-  if (userMessage.audioMessage) {
-    console.debug(userMessage.audioMessage);
-    const fileBuffer = await convertWebMTo16BitPCM(userMessage.audioMessage);
-    base64Audio = Buffer.from(fileBuffer).toString('base64');
 
-    liveSession.sendRealtimeInput({
-      audio: {
-        data: base64Audio,
-        mimeType: "audio/pcm;rate=16000"
-      }
-    });
+  if (!userMessage){
+      throw new Error("No user message provided.");
   }
-  const initialMessage = userMessage?.initialMsg;
-  if (initialMessage) {
-    console.debug("Initial Message: ", initialMessage);
-    liveSession.sendClientContent({turns: initialMessage, turnComplete: true});
-  }
+
+  liveSession.sendClientContent({ turns: [{ role: "user", parts: [{ text: userMessage }] }] });
+  // Prepare audio if present
   
   let done = false;
-  let isComplete = false;
+  
 
   while (!done) {
     const message = await waitMessage();
@@ -104,6 +102,8 @@ export async function continueInterview(userMessage: any, onChunk?: (chunk: {tex
     let chunkText = "";
     let audioBuffer: ArrayBuffer | null = null;
     let audioBase64 = "";
+    let evaluationData = null;
+    let isComplete = false;
 
     // Get text transcription
     if (message.serverContent?.outputTranscription) {
@@ -125,6 +125,37 @@ export async function continueInterview(userMessage: any, onChunk?: (chunk: {tex
       }
     }
 
+    // Check for tool calls - they can be at message.toolCall OR message.serverContent.toolCall
+    let toolCall = message.toolCall || message.serverContent?.toolCall;
+    
+    if (toolCall && toolCall.functionCalls && toolCall.functionCalls.length > 0) {
+      console.debug("✅ Tool call received:", toolCall);
+      const functionResponses = [];
+      
+      for (const fc of toolCall.functionCalls) {
+        console.debug(`📞 Function called: ${fc.name} (id: ${fc.id})`);
+        console.debug(`📋 Arguments:`, JSON.stringify(fc.args));
+        
+        evaluationData = fc.args;
+        
+        // Prepare function response for the Live API
+        functionResponses.push({
+          id: fc.id,
+          name: fc.name,
+          response: { 
+            result: "evaluated",
+            scheduling: FunctionResponseScheduling.SILENT
+          }
+        });
+      }
+      
+      // Send tool response back to the session
+      console.log("📤 Sending tool response...");
+      liveSession.sendToolResponse({ functionResponses: functionResponses });
+    } else {
+      console.debug("❌ No toolCall in message. Checked: message.toolCall and message.serverContent?.toolCall");
+    }
+
     const wavBuffer = audioBuffer ? pcmToWav(audioBuffer, 24000, 1, 16) : null;
     audioBase64 = wavBuffer ? bufferToBase64(wavBuffer) : "";
 
@@ -135,10 +166,11 @@ export async function continueInterview(userMessage: any, onChunk?: (chunk: {tex
       isComplete = true;
     }
     // Stream this chunk to the callback
-    if (onChunk && (chunkText || audioBase64)) {
+    if (onChunk && (chunkText || audioBase64 || evaluationData)) {
       onChunk({
         text: chunkText,
         audioBase64: audioBase64,
+        evaluation: evaluationData,
         isComplete: isComplete,
       });
     }

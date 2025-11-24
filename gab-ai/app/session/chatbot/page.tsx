@@ -103,6 +103,9 @@ function ChatbotContent() {
         const formData = new FormData();
         formData.append('audio', audioBlob);
         formData.append('sessionId', sessionId || '');
+
+        // Stop stream tracks
+        stream.getTracks().forEach(track => track.stop());
         
         try {
           const response = await transcribeAPI(formData);
@@ -121,9 +124,7 @@ function ChatbotContent() {
         } catch (error) {
           console.error('Error transcribing audio:', error);
         }
-        
-        // Stop stream tracks
-        stream.getTracks().forEach(track => track.stop());
+      
       };
       
       setIsListening(true);

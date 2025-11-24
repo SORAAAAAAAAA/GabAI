@@ -171,7 +171,7 @@ export function useWebSocketChat(sessionId: string | null) {
       
       // Handle streaming chunks
       if (message.type === 'ai_chunk') {
-        const chunkData = message.data as { text: string; audioBase64: string; isComplete: boolean };
+        const chunkData = message.data as { text: string; audioBase64: string; evaluation?: string; isComplete: boolean };
         
         // Queue audio for playback
         if (chunkData.audioBase64) {
