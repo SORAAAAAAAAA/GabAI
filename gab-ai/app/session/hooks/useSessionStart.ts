@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { startSession } from '@/utils/api/api.startSession';
 import { createClient } from '@/infra/supabase/supabaseClient';
 import { UUID } from 'crypto';
@@ -12,7 +11,6 @@ interface UseSessionStartReturn {
 
 export function useSessionStart(): UseSessionStartReturn {
      const [sessionStart, setSessionStart] = useState<boolean>(false);
-     const router = useRouter();
 
      const startInterview = async (jobRole: string) => {
          if (!jobRole.trim()) {
@@ -56,7 +54,6 @@ export function useSessionStart(): UseSessionStartReturn {
      
            setSessionStart(false);
            // Redirect to chatbot page
-           router.push(`/session/chatbot?sessionId=${sessionId}&wsURL=${encodeURIComponent(wsURL)}`);
          } catch (error) {
            console.error('[handleStartSession] Error:', error);
            throw error;

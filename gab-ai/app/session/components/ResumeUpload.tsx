@@ -5,24 +5,24 @@ import FilePreview from '@/app/session/components/FilePreview';
 
 
 export default function ResumeUpload() {
-    const { selectedFile, filePreview, loading, uploadFile, removeFile } = useFileUpload();
+  const { selectedFile, filePreview, loading, uploadFile, removeFile } = useFileUpload();
 
-    const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        try {
-            await uploadFile(file);
-            
-        } catch (error) {
-            alert('Failed to upload file. Please try again.');
-            console.log('Upload error:', error);
-        }
-        
+    try {
+      await uploadFile(file);
 
+    } catch (error) {
+      alert('Failed to upload file. Please try again.');
+      console.log('Upload error:', error);
     }
 
-    const handleDrop = (e: React.DragEvent) => {
+
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) {
@@ -30,11 +30,11 @@ export default function ResumeUpload() {
     }
   };
 
-    return (
-    <div className="w-1/2 h-full flex flex-col">
-      <div className="bg-white rounded-xl shadow-lg h-full relative flex flex-col border border-gray-100">
+  return (
+    <div className="flex-1 h-full flex flex-col">
+      <div className="bg-white rounded-xl shadow-lg relative flex flex-col border border-gray-100 h-full">
         {loading && <SessionLoader message="Processing your resume..." />}
-        
+
         <div
           className="border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 h-full flex flex-col items-center justify-center rounded-xl"
           onDrop={handleDrop}
@@ -48,12 +48,12 @@ export default function ResumeUpload() {
         >
           {selectedFile ? (
             <FilePreview
-              file={selectedFile} 
-              preview={filePreview} 
-              onRemove={removeFile} 
+              file={selectedFile}
+              preview={filePreview}
+              onRemove={removeFile}
             />
           ) : (
-            <div className="text-center p-12 w-full">
+            <div className="text-center p-4 w-full">
               <input
                 type="file"
                 id="resume-upload"
@@ -61,20 +61,20 @@ export default function ResumeUpload() {
                 onChange={handleFileInput}
               />
               <label htmlFor="resume-upload" className="cursor-pointer block">
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-2">
                   {/* Upload Icon */}
-                  <div className="bg-blue-100 p-4 rounded-full">
-                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
-                  
+
                   {/* Text Content */}
                   <div>
-                    <p className="text-xl font-bold text-gray-900 mb-2">
+                    <p className="text-lg font-bold text-gray-900 mb-1">
                       Upload Your Resume
                     </p>
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-xs text-gray-600 mb-2">
                       Drag and drop your PDF here or click to browse
                     </p>
                     <div className="flex items-center justify-center gap-2">

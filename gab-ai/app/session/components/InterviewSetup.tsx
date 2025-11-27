@@ -3,13 +3,19 @@ import { useSessionStart } from '../hooks/useSessionStart';
 import SessionLoader from './SessionLoader';
 
 
-export default function InterviewSetup() {
+interface InterviewSetupProps {
+  onStartInterview: () => void;
+}
+
+
+export default function InterviewSetup({ onStartInterview }: InterviewSetupProps) {
   const [jobRole, setJobRole] = useState('');
   const { sessionStart, startInterview } = useSessionStart();
 
   const handleStart = async () => {
     try {
       await startInterview(jobRole);
+      onStartInterview();
     } catch (error) {
       alert(error instanceof Error ? error.message : String(error));
       console.error('Start session error:', error);
@@ -17,13 +23,13 @@ export default function InterviewSetup() {
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 shadow-sm w-1/2 relative h-full">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-md flex-1 flex flex-col h-full">
       {sessionStart && <SessionLoader message="Starting your interview session..." />}
-      
+
       <h2 className="text-lg font-medium text-gray-900 mb-4">
         Get Ready for Your Interview
       </h2>
-      
+
       <div className="mb-6">
         <label className="block text-gray-900 text-sm font-medium mb-2">
           Desired Job Role
