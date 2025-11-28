@@ -1,14 +1,20 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState, useRef } from 'react';
 import { TokenSource } from 'livekit-client';
 import { SessionProvider, useSession } from '@livekit/components-react';
 import type { AppConfig } from '@/app-config';
 import { useInterviewData } from '@/context/InterviewDataContext';
 
+export interface InterviewData {
+  job: string;
+  resume: string;
+  userName: string;
+}
+
 interface ConnectionContextType {
   isConnectionActive: boolean;
-  connect: (startSession?: boolean) => void;
+  connect: (interviewData?: InterviewData) => void;
   startDisconnectTransition: () => void;
   onDisconnectTransitionComplete: () => void;
 }
@@ -35,14 +41,22 @@ interface ConnectionProviderProps {
 
 export function ConnectionProvider({ appConfig, children }: ConnectionProviderProps) {
   const [isConnectionActive, setIsConnectionActive] = useState(false);
-  const { interviewData } = useInterviewData();
+  const [passedInterviewData, setPassedInterviewData] = useState<InterviewData | null>(null);
+  const { interviewData: contextInterviewData } = useInterviewData();
+  
+  // Use a ref to always have the latest interview data available to tokenSource closure
+  const interviewDataRef = useRef<InterviewData | null>(null);
+  
+  // Update ref whenever interview data changes
+  const interviewData = passedInterviewData || contextInterviewData;
+  interviewDataRef.current = interviewData;
 
   const tokenSource = useMemo(() => {
-    // Log interview data when it's received
-    console.log('[useConnection] Interview data received:', {
-      job: interviewData?.job,
-      resume: interviewData?.resume ? `${interviewData.resume.substring(0, 50)}...` : '',
-      userName: interviewData?.userName,
+    console.log('[ConnectionProvider] Creating tokenSource. Current interviewData:', {
+      hasJob: !!interviewData?.job,
+      hasResume: !!interviewData?.resume,
+      hasUserName: !!interviewData?.userName,
+      isPassed: !!passedInterviewData,
     });
 
     // Always use custom endpoint to pass interview data
@@ -50,10 +64,12 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
       const endpoint = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT || '/api/connection-details';
       const url = new URL(endpoint, window.location.origin);
 
-      console.log('[useConnection] Calling connection-details with data:', {
-        job: interviewData?.job,
-        resume: interviewData?.resume ? `${interviewData.resume.substring(0, 50)}...` : '',
-        userName: interviewData?.userName,
+      // Use ref to get the latest interview data (passed data takes priority)
+      const latestData = interviewDataRef.current;
+      console.log('[TokenSource.custom] About to fetch. Current interviewData from ref:', {
+        job: latestData?.job,
+        resume: latestData?.resume ? `${latestData.resume.substring(0, 50)}...` : 'EMPTY',
+        userName: latestData?.userName,
       });
 
       try {
@@ -69,21 +85,21 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
                   agents: [{ agent_name: appConfig.agentName }],
                 }
               : undefined,
-            // Pass interview data to connection-details
-            job: interviewData?.job || '',
-            resume: interviewData?.resume || '',
-            userName: interviewData?.userName || '',
+            // Pass interview data to connection-details - use ref data which is always latest
+            job: latestData?.job || '',
+            resume: latestData?.resume || '',
+            userName: latestData?.userName || '',
           }),
         });
         const connectionDetails = await res.json();
-        console.log('[useConnection] Connection details received:', connectionDetails);
+        console.log('[TokenSource.custom] Connection details received:', connectionDetails);
         return connectionDetails;
       } catch (error) {
-        console.error('Error fetching connection details:', error);
+        console.error('[TokenSource.custom] Error fetching connection details:', error);
         throw new Error('Error fetching connection details!');
       }
     });
-  }, [appConfig, interviewData]);
+  }, [appConfig, interviewData, passedInterviewData]);
 
   const session = useSession(
     tokenSource,
@@ -95,7 +111,29 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
   const value = useMemo(() => {
     return {
       isConnectionActive,
-      connect: () => {
+      connect: async (passedData?: InterviewData) => {
+        console.log('[useConnection] connect() called with data:', {
+          passed: !!passedData,
+          job: passedData?.job || interviewData?.job,
+          resume: (passedData?.resume || interviewData?.resume)?.substring(0, 50),
+          userName: passedData?.userName || interviewData?.userName,
+        });
+        
+        // Verify data is available before connecting
+        const dataToUse = passedData || interviewData;
+        if (!dataToUse?.job || !dataToUse?.resume || !dataToUse?.userName) {
+          console.error('[useConnection] Interview data is incomplete:', dataToUse);
+          throw new Error('Interview data is not complete. Please try again.');
+        }
+        
+        // If interview data is passed directly, store it immediately
+        if (passedData) {
+          setPassedInterviewData(passedData);
+          console.log('[useConnection] Interview data passed to connect(), will be used by tokenSource');
+          // Wait for state update to be processed before initiating connection
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
         setIsConnectionActive(true);
         startSession();
       },
@@ -106,7 +144,7 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
         endSession();
       },
     };
-  }, [startSession, endSession, isConnectionActive]);
+  }, [startSession, endSession, isConnectionActive, interviewData]);
 
   return (
     <SessionProvider session={session}>

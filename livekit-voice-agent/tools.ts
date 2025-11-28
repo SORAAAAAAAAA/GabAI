@@ -1,8 +1,9 @@
-import { Behavior, type Tool, Type } from '@google/genai';
+import { Type, type Tool } from '@google/genai';
 
-const evaluationTool = {
+export const evaluateResponseFunctionDeclaration = {
+  name: 'evaluateResponse',
   description:
-    "Score the user's response or provideevaluation scores and feedback for the user's response to the following objects inside properties. Call this silently after evaluating the user.",
+    "Score the user's evaluation scores and feedback for the user's response to the following objects inside properties. Call this silently after evaluating the user.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -25,9 +26,10 @@ const evaluationTool = {
     },
     required: ['scores', 'feedback'],
   },
-  behavior: Behavior.NON_BLOCKING,
 };
 
-export const tools: Tool = {
-  functionDeclarations: [evaluationTool],
+const evaluationTool: Tool = {
+  functionDeclarations: [evaluateResponseFunctionDeclaration],
 };
+
+export const tools: Tool = evaluationTool;

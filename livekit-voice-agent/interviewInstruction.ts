@@ -1,4 +1,4 @@
-export function generateSystemInstruction(
+export function generateInterviewInstruction(
   candidateName: string,
   jobRole: string,
   resume: string

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useSessionStart } from '../hooks/useSessionStart';
 import SessionLoader from './SessionLoader';
+import type { InterviewData } from '@/hooks/useConnection';
 
 
 interface InterviewSetupProps {
-  onStartInterview: () => void;
+  onStartInterview: (data: InterviewData) => void;
 }
 
 
@@ -14,8 +15,8 @@ export default function InterviewSetup({ onStartInterview }: InterviewSetupProps
 
   const handleStart = async () => {
     try {
-      await startInterview(jobRole);
-      onStartInterview();
+      const interviewData = await startInterview(jobRole);
+      onStartInterview(interviewData);
     } catch (error) {
       alert(error instanceof Error ? error.message : String(error));
       console.error('Start session error:', error);

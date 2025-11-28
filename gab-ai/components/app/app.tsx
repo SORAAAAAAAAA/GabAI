@@ -7,6 +7,7 @@ import { Toaster } from '@/components/livekit/toaster';
 import { useAgentErrors } from '@/hooks/useAgentErrors';
 import { ConnectionProvider } from '@/hooks/useConnection';
 import { useDebugMode } from '@/hooks/useDebug';
+import { InterviewDataProvider } from '@/context/InterviewDataContext';
 
 const IN_DEVELOPMENT = process.env.NODE_ENV !== 'production';
 
@@ -23,14 +24,16 @@ interface AppProps {
 
 export function App({ appConfig }: AppProps) {
   return (
-    <ConnectionProvider appConfig={appConfig}>
-      <AppSetup />
-      <main className="h-full w-full">
-        <ViewController appConfig={appConfig} />
-      </main>
-      <StartAudio label="Start Audio" />
-      <RoomAudioRenderer />
-      <Toaster />
-    </ConnectionProvider>
+    <InterviewDataProvider>
+      <ConnectionProvider appConfig={appConfig}>
+        <AppSetup />
+        <main className="h-full w-full">
+          <ViewController appConfig={appConfig} />
+        </main>
+        <StartAudio label="Start Audio" />
+        <RoomAudioRenderer />
+        <Toaster />
+      </ConnectionProvider>
+    </InterviewDataProvider>
   );
 }

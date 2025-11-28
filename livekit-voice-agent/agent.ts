@@ -1,14 +1,16 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
-import { type JobContext, WorkerOptions, cli, defineAgent, voice } from '@livekit/agents';
+import { type JobContext, WorkerOptions, cli, defineAgent, voice, llm } from '@livekit/agents';
 import * as google from '@livekit/agents-plugin-google';
 import { BackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
-import { generateSystemInstruction } from './systemInstruction.js';
-import { tools } from './tools.js';
+import { generateInterviewInstruction } from './interviewInstruction.js';
+import { evaluateInstruction } from './evaluateInstruction.js';
+import { evaluateResponseFunctionDeclaration, tools } from './tools.js';
+import { Modality } from '@google/genai';
 
 dotenv.config({ path: '.env.local' });
 
-class Assistant extends voice.Agent {
+class Interviewer extends voice.Agent {
   constructor(systemInstruction: string) {
     super({
       instructions: systemInstruction,
@@ -16,16 +18,27 @@ class Assistant extends voice.Agent {
   }
 }
 
+class Evaluator extends voice.Agent {
+  constructor() {
+    super({
+      instructions: evaluateInstruction,
+      tools: {
+        evaluateResponse: llm.tool({
+          description: evaluateResponseFunctionDeclaration.description,
+          parameters: evaluateResponseFunctionDeclaration.parameters as any,
+          execute: async (input: any) => {
+            console.log('[Evaluator] Evaluation tool called with:', input);
+            return { success: true, message: 'Evaluation recorded' };
+          },
+        }),
+      },
+    });
+  }
+}
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     // First, connect to the room to get metadata
     await ctx.connect();
-
-    console.log('[agent] Room object:', {
-      roomName: ctx.room.name,
-      metadata: ctx.room.metadata,
-      metadataType: typeof ctx.room.metadata,
-    });
 
     // Extract metadata from room configuration
     let systemInstruction = '';
@@ -54,15 +67,15 @@ export default defineAgent({
     }
 
     // Generate personalized system instruction
-    systemInstruction = generateSystemInstruction(candidateName, jobRole, resume);
+    systemInstruction = generateInterviewInstruction(candidateName, jobRole, resume);
 
     console.log('[agent] System instruction generated for:', {
       jobRole,
       candidateName,
     });
 
-    // NOW create sessions with the generated system instruction
-    const session = new voice.AgentSession({
+    // INTERVIEW SESSION - Create and start the interviewer
+    const interviewSession = new voice.AgentSession({
       llm: new google.beta.realtime.RealtimeModel({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         voice: 'Gacrux',
@@ -71,28 +84,58 @@ export default defineAgent({
       }),
     });
 
-    const session2 = new voice.AgentSession({
+    console.log('[agent] Starting interview session...');
+    try {
+      await interviewSession.start({
+        agent: new Interviewer(systemInstruction),
+        room: ctx.room,
+        inputOptions: {
+          noiseCancellation: BackgroundVoiceCancellation(),
+        },
+        // This is the PRIMARY agent - it records and responds
+        record: true,
+      });
+      console.log('[agent] Interview session started successfully (PRIMARY)');
+    } catch (error) {
+      console.error('[agent] Error starting interview session:', error);
+      throw error;
+    }
+
+    const handle = interviewSession.generateReply({
+      instructions: 'Greet the candidate and Ask your first question.',
+    });
+    await handle.waitForPlayout();
+
+    // Interview is live
+    console.log('[agent] Interview session is live - waiting for interview to complete');
+
+    // EVALUATION SESSION - Create evaluator session for after interview
+    const evaluationSession = new voice.AgentSession({
       llm: new google.beta.realtime.RealtimeModel({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        modalities: [Modality.TEXT],
         temperature: 0.8,
-        instructions: systemInstruction,
+        instructions: evaluateInstruction,
+        geminiTools: tools,
       }),
     });
 
-    await session.start({
-      agent: new Assistant(systemInstruction),
+    await evaluationSession.start({
+      agent: new Evaluator(),
       room: ctx.room,
       inputOptions: {
-        // For telephony applications, use `TelephonyBackgroundVoiceCancellation` for best results
         noiseCancellation: BackgroundVoiceCancellation(),
       },
+      // This is a SECONDARY agent - it doesn't record/respond to user input
+      record: false,
     });
 
-    const handle = session.generateReply({
-      instructions: 'Greet the user and offer your assistance.',
-    });
-    await handle.waitForPlayout();
+    console.log('[agent] Evaluation session started (SECONDARY)');
+
+    // Both sessions are now active
+    // The interviewer responds to user input
+    // When interview ends, the evaluator can be started
   },
-}); 
+});
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));

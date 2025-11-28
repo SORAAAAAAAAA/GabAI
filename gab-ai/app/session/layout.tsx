@@ -4,7 +4,6 @@ import ModalContainer from '@/components/ModalContainer';
 import Sidebar from '@/components/sidebar';
 import SessionExitConfirmation from '@/app/session/components/SessionExitConfirmation';
 import { SessionExitProvider } from '@/context/SessionExitContext';
-import { InterviewDataProvider } from '@/context/InterviewDataContext';
 import { useSessionExit } from '@/hooks/useSessionExit';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
@@ -43,32 +42,30 @@ export default function SessionLayout({
   });
 
   return (
-    <InterviewDataProvider>
-      <SessionExitProvider value={{
-        isConfirmationOpen,
-        isExiting,
-        handleNavigationIntent,
-        handleContinueInterview,
-        handleExitSession,
-      }}>
-        <ModalContainer hideBackground>
-          <div className="flex h-screen w-screen relative bg-white">
-            <Sidebar isInSessionLayout={true} />
-            
-            <div className="flex-1 overflow-auto bg-white">
-              {children}
-            </div>
+    <SessionExitProvider value={{
+      isConfirmationOpen,
+      isExiting,
+      handleNavigationIntent,
+      handleContinueInterview,
+      handleExitSession,
+    }}>
+      <ModalContainer hideBackground>
+        <div className="flex h-screen w-screen relative bg-white">
+          <Sidebar isInSessionLayout={true} />
+          
+          <div className="flex-1 overflow-auto bg-white">
+            {children}
           </div>
-        </ModalContainer>
-        
-        {/* Session Exit Confirmation - Rendered outside ModalContainer to avoid z-index issues */}
-        <SessionExitConfirmation
-          isOpen={isConfirmationOpen}
-          onContinue={handleContinueInterview}
-          onExit={handleExitSession}
-          isLoading={isExiting}
-        />
-      </SessionExitProvider>
-    </InterviewDataProvider>
+        </div>
+      </ModalContainer>
+      
+      {/* Session Exit Confirmation - Rendered outside ModalContainer to avoid z-index issues */}
+      <SessionExitConfirmation
+        isOpen={isConfirmationOpen}
+        onContinue={handleContinueInterview}
+        onExit={handleExitSession}
+        isLoading={isExiting}
+      />
+    </SessionExitProvider>
   );
 }

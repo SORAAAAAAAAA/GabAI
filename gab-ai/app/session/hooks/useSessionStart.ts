@@ -7,7 +7,7 @@ import { UUID } from 'crypto';
 
 interface UseSessionStartReturn {
     sessionStart: boolean;
-    startInterview:  (jobRole: string) => Promise<void>;
+    startInterview:  (jobRole: string) => Promise<{job: string; resume: string; userName: string}>;
 }
 
 export function useSessionStart(): UseSessionStartReturn {
@@ -60,6 +60,15 @@ export function useSessionStart(): UseSessionStartReturn {
              userName,
            });
            
+           console.log('[useSessionStart] Interview data set to context:', {
+             job,
+             resume: resume ? `${resume.substring(0, 50)}...` : 'empty',
+             userName,
+           });
+           
+           // Wait a tick to ensure React state update is processed
+           await new Promise(resolve => setTimeout(resolve, 0));
+           
            // startSession() already returns the parsed JSON data
            const responseData = await startSession(userID, job, resume);
            console.log('[handleStartSession] Success Response:', responseData);
@@ -68,6 +77,9 @@ export function useSessionStart(): UseSessionStartReturn {
            console.log('[handleStartSession] WebSocket URL:', wsURL);
      
            setSessionStart(false);
+           
+           // Return the interview data to be passed to connect()
+           return { job, resume, userName };
            // Redirect to chatbot page
          } catch (error) {
            console.error('[handleStartSession] Error:', error);

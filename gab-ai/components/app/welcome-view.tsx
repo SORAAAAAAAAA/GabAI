@@ -3,11 +3,12 @@ import React from 'react';
 import InterviewSetup from '@/app/session/components/InterviewSetup';
 import ResumeUpload from '@/app/session/components//ResumeUpload';
 import Logout from '../logout';
+import type { InterviewData } from '@/hooks/useConnection';
 
 
 interface WelcomeViewProps {
   startButtonText: string;
-  onStartCall: () => void;
+  onStartCall: (data: InterviewData) => void;
 }
 
 export const WelcomeView = ({

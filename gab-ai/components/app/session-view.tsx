@@ -92,7 +92,7 @@ export const SessionView = ({
       {/* Chat Transcript */}
       <div
         className={cn(
-          'relative flex-1 overflow-hidden grid grid-cols-1 grid-rows-1',
+          'relative h-[200px] overflow-hidden grid grid-cols-1 grid-rows-1',
           !chatOpen && 'pointer-events-none'
         )}
       >

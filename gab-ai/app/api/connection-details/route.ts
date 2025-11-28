@@ -16,9 +16,6 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 
 // don't cache the results
 export const revalidate = 0;
-let job = '';
-let resume = '';
-let userName = '';
 
 export async function POST(req: Request) {
   try {
@@ -35,9 +32,16 @@ export async function POST(req: Request) {
     // Parse agent configuration from request body
     const body = await req.json();
     const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
-    job = body?.job;
-    resume  = body?.resume;
-    userName = body?.userName;
+    const job = body?.job || '';
+    const resume = body?.resume || '';
+    const userName = body?.userName || '';
+
+    console.log('[connection-details] Received data:', {
+      agentName,
+      job,
+      userName,
+      resume: resume ? `${resume.substring(0, 50)}...` : '',
+    });
 
     // Create room with metadata
     const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
