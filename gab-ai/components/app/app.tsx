@@ -25,7 +25,7 @@ export function App({ appConfig }: AppProps) {
   return (
     <ConnectionProvider appConfig={appConfig}>
       <AppSetup />
-      <main className="grid grid-cols-1 min-h-screen place-content-center">
+      <main className="h-full w-full">
         <ViewController appConfig={appConfig} />
       </main>
       <StartAudio label="Start Audio" />

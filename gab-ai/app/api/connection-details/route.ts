@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { AccessToken, type AccessTokenOptions, type VideoGrant } from 'livekit-server-sdk';
+import { AccessToken, type AccessTokenOptions, type VideoGrant, RoomServiceClient } from 'livekit-server-sdk';
 import { RoomConfiguration } from '@livekit/protocol';
 
 type ConnectionDetails = {
@@ -16,6 +16,9 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 
 // don't cache the results
 export const revalidate = 0;
+let job = '';
+let resume = '';
+let userName = '';
 
 export async function POST(req: Request) {
   try {
@@ -32,11 +35,31 @@ export async function POST(req: Request) {
     // Parse agent configuration from request body
     const body = await req.json();
     const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
+    job = body?.job;
+    resume  = body?.resume;
+    userName = body?.userName;
+
+    // Create room with metadata
+    const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
+    const roomService = new RoomServiceClient(LIVEKIT_URL, API_KEY, API_SECRET);
+    
+    await roomService.createRoom({
+      name: roomName,
+      metadata: JSON.stringify({
+        jobRole: job,
+        resume: resume,
+        userName: userName,
+      }),
+    });
+
+    console.log('[connection-details] Room created:', {
+      roomName,
+      metadata: { jobRole: job, userName, resumeLength: resume?.length || 0 },
+    });
 
     // Generate participant token
     const participantName = 'user';
     const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
-    const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
 
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
@@ -80,6 +103,7 @@ function createParticipantToken(
     canSubscribe: true,
   };
   at.addGrant(grant);
+
 
   if (agentName) {
     at.roomConfig = new RoomConfiguration({

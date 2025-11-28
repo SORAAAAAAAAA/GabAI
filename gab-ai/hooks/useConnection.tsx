@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import { TokenSource } from 'livekit-client';
 import { SessionProvider, useSession } from '@livekit/components-react';
 import type { AppConfig } from '@/app-config';
+import { useInterviewData } from '@/context/InterviewDataContext';
 
 interface ConnectionContextType {
   isConnectionActive: boolean;
@@ -34,37 +35,55 @@ interface ConnectionProviderProps {
 
 export function ConnectionProvider({ appConfig, children }: ConnectionProviderProps) {
   const [isConnectionActive, setIsConnectionActive] = useState(false);
+  const { interviewData } = useInterviewData();
 
   const tokenSource = useMemo(() => {
-    if (typeof process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT === 'string') {
-      return TokenSource.custom(async () => {
-        const url = new URL(process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT!, window.location.origin);
+    // Log interview data when it's received
+    console.log('[useConnection] Interview data received:', {
+      job: interviewData?.job,
+      resume: interviewData?.resume ? `${interviewData.resume.substring(0, 50)}...` : '',
+      userName: interviewData?.userName,
+    });
 
-        try {
-          const res = await fetch(url.toString(), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Sandbox-Id': appConfig.sandboxId ?? '',
-            },
-            body: JSON.stringify({
-              room_config: appConfig.agentName
-                ? {
-                    agents: [{ agent_name: appConfig.agentName }],
-                  }
-                : undefined,
-            }),
-          });
-          return await res.json();
-        } catch (error) {
-          console.error('Error fetching connection details:', error);
-          throw new Error('Error fetching connection details!');
-        }
+    // Always use custom endpoint to pass interview data
+    return TokenSource.custom(async () => {
+      const endpoint = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT || '/api/connection-details';
+      const url = new URL(endpoint, window.location.origin);
+
+      console.log('[useConnection] Calling connection-details with data:', {
+        job: interviewData?.job,
+        resume: interviewData?.resume ? `${interviewData.resume.substring(0, 50)}...` : '',
+        userName: interviewData?.userName,
       });
-    }
 
-    return TokenSource.endpoint('/api/connection-details');
-  }, [appConfig]);
+      try {
+        const res = await fetch(url.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Sandbox-Id': appConfig.sandboxId ?? '',
+          },
+          body: JSON.stringify({
+            room_config: appConfig.agentName
+              ? {
+                  agents: [{ agent_name: appConfig.agentName }],
+                }
+              : undefined,
+            // Pass interview data to connection-details
+            job: interviewData?.job || '',
+            resume: interviewData?.resume || '',
+            userName: interviewData?.userName || '',
+          }),
+        });
+        const connectionDetails = await res.json();
+        console.log('[useConnection] Connection details received:', connectionDetails);
+        return connectionDetails;
+      } catch (error) {
+        console.error('Error fetching connection details:', error);
+        throw new Error('Error fetching connection details!');
+      }
+    });
+  }, [appConfig, interviewData]);
 
   const session = useSession(
     tokenSource,

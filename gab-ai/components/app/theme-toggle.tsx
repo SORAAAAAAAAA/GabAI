@@ -6,17 +6,11 @@ import { THEME_MEDIA_QUERY, THEME_STORAGE_KEY, cn } from '@/lib/utils';
 
 const THEME_SCRIPT = `
   const doc = document.documentElement;
-  const theme = localStorage.getItem("${THEME_STORAGE_KEY}") ?? "light";
-
-  if (theme === "system") {
-    if (window.matchMedia("${THEME_MEDIA_QUERY}").matches) {
-      doc.classList.add("dark");
-    } else {
-      doc.classList.add("light");
-    }
-  } else {
-    doc.classList.add(theme);
-  }
+  const theme = localStorage.getItem("${THEME_STORAGE_KEY}") || "light";
+  
+  // Always apply the stored theme or default to light
+  doc.classList.remove("dark", "light");
+  doc.classList.add(theme);
 `
   .trim()
   .replace(/\n/g, '')
@@ -54,6 +48,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
 
   useEffect(() => {
     const storedTheme = (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode) ?? 'light';
+    
+    // Force light theme if nothing is stored
+    if (!localStorage.getItem(THEME_STORAGE_KEY)) {
+      localStorage.setItem(THEME_STORAGE_KEY, 'light');
+      applyTheme('light');
+    }
 
     setTheme(storedTheme);
   }, []);

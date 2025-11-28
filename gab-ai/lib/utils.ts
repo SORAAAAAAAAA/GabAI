@@ -8,7 +8,7 @@ export const CONFIG_ENDPOINT = process.env.NEXT_PUBLIC_APP_CONFIG_ENDPOINT;
 export const SANDBOX_ID = process.env.SANDBOX_ID;
 
 export const THEME_STORAGE_KEY = 'theme-mode';
-export const THEME_MEDIA_QUERY = '(prefers-color-scheme: light)';
+export const THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 export interface SandboxConfig {
   [key: string]:

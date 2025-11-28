@@ -10,7 +10,7 @@ interface InterviewSetupProps {
 
 export default function InterviewSetup({ onStartInterview }: InterviewSetupProps) {
   const [jobRole, setJobRole] = useState('');
-  const { sessionStart, startInterview } = useSessionStart();
+  const { sessionStart, startInterview} = useSessionStart();
 
   const handleStart = async () => {
     try {

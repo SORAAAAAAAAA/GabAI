@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { startSession } from '@/utils/api/api.startSession';
 import { createClient } from '@/infra/supabase/supabaseClient';
+import { useInterviewData } from '@/context/InterviewDataContext';
 import { UUID } from 'crypto';
 
 
@@ -11,6 +12,7 @@ interface UseSessionStartReturn {
 
 export function useSessionStart(): UseSessionStartReturn {
      const [sessionStart, setSessionStart] = useState<boolean>(false);
+     const { setInterviewData } = useInterviewData();
 
      const startInterview = async (jobRole: string) => {
          if (!jobRole.trim()) {
@@ -22,8 +24,14 @@ export function useSessionStart(): UseSessionStartReturn {
            const supabase = createClient();
            const {data} = await supabase.auth.getUser();
            const userID = (data.user?.id) as UUID;
-           console.log('[handleStartSession] User ID:', userID);
-           console.log('[handleStartSession] Job Role:', jobRole);
+           
+           // Extract display name from user metadata
+           const metadata = data.user?.user_metadata || {};
+           const userName = metadata.full_name ||
+                           metadata.name ||
+                           metadata.display_name ||
+                           metadata["Display name"] ||
+                           'Candidate';
            
            // Fetch the saved resume from Supabase
            const { data: resumeData, error: resumeError } = await supabase
@@ -36,17 +44,24 @@ export function useSessionStart(): UseSessionStartReturn {
              throw new Error('Please upload a valid resume before starting the session.');
            }
            
-           const resumeText = resumeData.resume_text;
+           const resume = resumeData.resume_text;
 
-           if ( resumeText.toLowerCase() === 'not a resume' ) {
+           if ( resume.toLowerCase() === 'not a resume' ) {
               console.log('[handleStartSession] Uploaded document is not a resume/CV.');
               throw new Error('Uploaded document is not recognized as a resume/CV.');
            }
      
            const job = jobRole.trim();
-     
+           
+           // Store interview data in context for connection-details to use
+           setInterviewData({
+             job,
+             resume,
+             userName,
+           });
+           
            // startSession() already returns the parsed JSON data
-           const responseData = await startSession(userID, job, resumeText);
+           const responseData = await startSession(userID, job, resume);
            console.log('[handleStartSession] Success Response:', responseData);
            const { sessionId, wsURL } = responseData;
            console.log('[handleStartSession] Session ID:', sessionId);
@@ -62,5 +77,5 @@ export function useSessionStart(): UseSessionStartReturn {
          }
        };
 
-       return { sessionStart, startInterview  };
+       return { sessionStart, startInterview };
 }
