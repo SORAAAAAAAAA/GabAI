@@ -15,10 +15,6 @@ export interface EvaluationData {
 }
 
 
-export interface EvaluationDisplayProps {
-    data: EvaluationData;
-}
-
 
 
 

@@ -7,6 +7,7 @@ import type { AppConfig } from '@/app-config';
 import { ChatTranscript } from '@/components/app/chat-transcript';
 import { PreConnectMessage } from '@/components/app/preconnect-message';
 import { TileLayout } from '@/components/app/tile-layout';
+import { FeedbackPanel } from '@/components/app/feedbackPanel';
 import {
   AgentControlBar,
   type ControlBarControls,
@@ -108,6 +109,11 @@ export const SessionView = ({
 
       {/* Tile Layout */}
       <TileLayout chatOpen={chatOpen} />
+
+      {/* Feedback Panel */}
+      <div className="px-4 md:px-6 py-2">
+        <FeedbackPanel />
+      </div>
 
       {/* Bottom */}
       <MotionBottom

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
+import { EvaluationData } from '@/types/evaluation';
 
 interface InterviewData {
   job: string;
@@ -8,18 +9,23 @@ interface InterviewData {
   userName: string;
 }
 
+
 interface InterviewDataContextType {
   interviewData: InterviewData | null;
   setInterviewData: (data: InterviewData | null) => void;
+
+  latestEvaluation: EvaluationData | null;
+  setLatestEvaluation: (data: EvaluationData | null) => void;
 }
 
 const InterviewDataContext = createContext<InterviewDataContextType | undefined>(undefined);
 
 export function InterviewDataProvider({ children }: { children: React.ReactNode }) {
   const [interviewData, setInterviewData] = useState<InterviewData | null>(null);
+  const [latestEvaluation, setLatestEvaluation] = useState<EvaluationData | null>(null);
 
   return (
-    <InterviewDataContext.Provider value={{ interviewData, setInterviewData }}>
+    <InterviewDataContext.Provider value={{ interviewData, setInterviewData, latestEvaluation, setLatestEvaluation }}>
       {children}
     </InterviewDataContext.Provider>
   );

@@ -8,6 +8,7 @@ import { useAgentErrors } from '@/hooks/useAgentErrors';
 import { ConnectionProvider } from '@/hooks/useConnection';
 import { useDebugMode } from '@/hooks/useDebug';
 import { InterviewDataProvider } from '@/context/InterviewDataContext';
+import { EvaluationHandler } from '@/components/livekit/evaluationToast';
 
 const IN_DEVELOPMENT = process.env.NODE_ENV !== 'production';
 
@@ -28,6 +29,7 @@ export function App({ appConfig }: AppProps) {
       <ConnectionProvider appConfig={appConfig}>
         <AppSetup />
         <main className="h-full w-full">
+          <EvaluationHandler />
           <ViewController appConfig={appConfig} />
         </main>
         <StartAudio label="Start Audio" />

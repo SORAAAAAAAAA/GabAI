@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState, useRef } from 'react';
 import { TokenSource } from 'livekit-client';
-import { SessionProvider, useSession } from '@livekit/components-react';
+import { SessionProvider, useSession,  } from '@livekit/components-react';
 import type { AppConfig } from '@/app-config';
 import { useInterviewData } from '@/context/InterviewDataContext';
 
@@ -42,7 +42,7 @@ interface ConnectionProviderProps {
 export function ConnectionProvider({ appConfig, children }: ConnectionProviderProps) {
   const [isConnectionActive, setIsConnectionActive] = useState(false);
   const [passedInterviewData, setPassedInterviewData] = useState<InterviewData | null>(null);
-  const { interviewData: contextInterviewData } = useInterviewData();
+  const { interviewData: contextInterviewData, setLatestEvaluation } = useInterviewData();
   
   // Use a ref to always have the latest interview data available to tokenSource closure
   const interviewDataRef = useRef<InterviewData | null>(null);
@@ -142,9 +142,11 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
       },
       onDisconnectTransitionComplete: () => {
         endSession();
+        // Reset evaluation data when session ends
+        setLatestEvaluation(null);
       },
     };
-  }, [startSession, endSession, isConnectionActive, interviewData]);
+  }, [startSession, endSession, isConnectionActive, interviewData, setLatestEvaluation]);
 
   return (
     <SessionProvider session={session}>

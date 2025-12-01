@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { type JobContext, WorkerOptions, cli, defineAgent, voice, llm } from '@livekit/agents';
 import * as google from '@livekit/agents-plugin-google';
+import { GoogleGenAI } from "@google/genai";
 import { BackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
 import { generateInterviewInstruction } from './interviewInstruction.js';
 import { evaluateInstruction } from './evaluateInstruction.js';
@@ -9,6 +10,26 @@ import { evaluateResponseFunctionDeclaration, tools } from './tools.js';
 import { Modality } from '@google/genai';
 
 dotenv.config({ path: '.env.local' });
+
+const ai = new GoogleGenAI({apiKey: process.env.GOOGLE_API_KEY!});
+
+const evaluatorModel = ai.chats.create({
+  model: "gemini-2.0-flash-lite",
+  history: [
+    {
+      role: "user",
+      parts: [{ text: "Start evaluation" }],
+    },
+    {
+      role: "model",
+      parts: [{ text: "Evaluation started" }],
+    }
+  ],
+  config: {
+    tools: [tools],
+    systemInstruction: evaluateInstruction,
+  }
+})
 
 class Interviewer extends voice.Agent {
   constructor(systemInstruction: string) {
@@ -18,23 +39,6 @@ class Interviewer extends voice.Agent {
   }
 }
 
-class Evaluator extends voice.Agent {
-  constructor() {
-    super({
-      instructions: evaluateInstruction,
-      tools: {
-        evaluateResponse: llm.tool({
-          description: evaluateResponseFunctionDeclaration.description,
-          parameters: evaluateResponseFunctionDeclaration.parameters as any,
-          execute: async (input: any) => {
-            console.log('[Evaluator] Evaluation tool called with:', input);
-            return { success: true, message: 'Evaluation recorded' };
-          },
-        }),
-      },
-    });
-  }
-}
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     // First, connect to the room to get metadata
@@ -74,7 +78,6 @@ export default defineAgent({
       candidateName,
     });
 
-    // INTERVIEW SESSION - Create and start the interviewer
     const interviewSession = new voice.AgentSession({
       llm: new google.beta.realtime.RealtimeModel({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -82,6 +85,73 @@ export default defineAgent({
         temperature: 0.8,
         instructions: systemInstruction,
       }),
+    });
+
+
+    const runEvaluation = async (question: string, answer: string) => {
+      console.log('[Evaluator] Analyzing response...');
+
+      try {
+
+        const result = await evaluatorModel.sendMessage({
+          message: `Interviewer asked: ${question}\nCandidate answered: ${answer}\n Evaluate this response.`
+        });
+
+        const functionCall = result.functionCalls?.[0];
+
+        if (functionCall && functionCall.name === 'evaluateResponse') {
+          const evaluationData = functionCall.args;
+          
+          console.log('[Evaluator] Evaluation generated:', evaluationData);
+
+          // SEND TO FRONTEND: Publish JSON data to the room
+          const payload = JSON.stringify({
+            type: 'EVALUATION',
+            data: evaluationData
+          });
+
+          if (ctx.room.localParticipant) {
+              await ctx.room.localParticipant.publishData(
+              new TextEncoder().encode(payload),
+              { reliable: true, topic: 'evaluation' }
+            );
+          } else {
+            console.error('[Evaluator] No local participant found to publish evaluation data.');
+          }
+        }
+        
+        } catch (error) {
+            console.error('[Evaluator] Error analyzing response:', error);
+          }
+    } 
+
+    let lastAgentMessage = "";
+
+    // Use the Enum to avoid string typos. The correct event is 'conversation_item_added'
+    interviewSession.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
+      const { item } = event;
+
+      // 1. Identify if the AGENT spoke
+      if (item.role === 'assistant' || item.role === 'system') {
+        const text = item.textContent;
+        if (text) {
+          console.log('[Agent Spoke]:', text);
+          lastAgentMessage = text;
+        }
+      }
+
+      // 2. Identify if the USER spoke (User Answer)
+      if (item.role === 'user') {
+        const text = item.textContent;
+        
+        if (text && lastAgentMessage) {
+          console.log('[User Spoke]:', text);
+          
+          // Trigger your evaluator function here
+          // This assumes runEvaluation is defined in your scope (as per previous step)
+          runEvaluation(lastAgentMessage, text);
+        }
+      }
     });
 
     console.log('[agent] Starting interview session...');
@@ -102,39 +172,12 @@ export default defineAgent({
     }
 
     const handle = interviewSession.generateReply({
-      instructions: 'Greet the candidate and Ask your first question.',
+      instructions: 'Greet the candidate and begin the interview without waiting for a prompt.',
     });
     await handle.waitForPlayout();
 
-    // Interview is live
-    console.log('[agent] Interview session is live - waiting for interview to complete');
 
-    // EVALUATION SESSION - Create evaluator session for after interview
-    const evaluationSession = new voice.AgentSession({
-      llm: new google.beta.realtime.RealtimeModel({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        modalities: [Modality.TEXT],
-        temperature: 0.8,
-        instructions: evaluateInstruction,
-        geminiTools: tools,
-      }),
-    });
 
-    await evaluationSession.start({
-      agent: new Evaluator(),
-      room: ctx.room,
-      inputOptions: {
-        noiseCancellation: BackgroundVoiceCancellation(),
-      },
-      // This is a SECONDARY agent - it doesn't record/respond to user input
-      record: false,
-    });
-
-    console.log('[agent] Evaluation session started (SECONDARY)');
-
-    // Both sessions are now active
-    // The interviewer responds to user input
-    // When interview ends, the evaluator can be started
   },
 });
 
