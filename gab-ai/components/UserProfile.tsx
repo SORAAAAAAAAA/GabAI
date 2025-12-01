@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronsUpDown, LogOut, User, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/supabaseClient';
+import { createClient } from '@/infra/supabase/supabaseClient';
 
 export default function UserProfile() {
   const router = useRouter();

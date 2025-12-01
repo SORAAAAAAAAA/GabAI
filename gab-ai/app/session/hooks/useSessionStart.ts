@@ -7,7 +7,7 @@ import { UUID } from 'crypto';
 
 interface UseSessionStartReturn {
     sessionStart: boolean;
-    startInterview:  (jobRole: string) => Promise<{job: string; resume: string; userName: string}>;
+    startInterview:  (jobRole: string) => Promise<{job: string; resume: string; userName: string; sessionId: string}>;
 }
 
 export function useSessionStart(): UseSessionStartReturn {
@@ -52,34 +52,37 @@ export function useSessionStart(): UseSessionStartReturn {
            }
      
            const job = jobRole.trim();
+
+           const responseData = await startSession(userID, job, resume);
+           const { sessionId } = responseData;
            
            // Store interview data in context for connection-details to use
            setInterviewData({
              job,
              resume,
              userName,
+             sessionId,
            });
            
            console.log('[useSessionStart] Interview data set to context:', {
              job,
              resume: resume ? `${resume.substring(0, 50)}...` : 'empty',
              userName,
+             sessionId: responseData.sessionId,
            });
            
            // Wait a tick to ensure React state update is processed
            await new Promise(resolve => setTimeout(resolve, 0));
            
            // startSession() already returns the parsed JSON data
-           const responseData = await startSession(userID, job, resume);
            console.log('[handleStartSession] Success Response:', responseData);
-           const { sessionId, wsURL } = responseData;
+           
            console.log('[handleStartSession] Session ID:', sessionId);
-           console.log('[handleStartSession] WebSocket URL:', wsURL);
      
            setSessionStart(false);
            
            // Return the interview data to be passed to connect()
-           return { job, resume, userName };
+           return { job, resume, userName, sessionId };
            // Redirect to chatbot page
          } catch (error) {
            console.error('[handleStartSession] Error:', error);

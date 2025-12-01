@@ -22,6 +22,7 @@
     "@livekit/agents": "~1.0.21",
     "@livekit/agents-plugin-google": "1.x",
     "@livekit/noise-cancellation-node": "~0.1.9",
+    "@supabase/supabase-js": "^2.86.0",
     "dotenv": "^17.2.3"
   }
 }

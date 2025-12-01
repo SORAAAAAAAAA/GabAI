@@ -6,12 +6,15 @@ import { GoogleGenAI } from "@google/genai";
 import { BackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
 import { generateInterviewInstruction } from './interviewInstruction.js';
 import { evaluateInstruction } from './evaluateInstruction.js';
-import { evaluateResponseFunctionDeclaration, tools } from './tools.js';
-import { Modality } from '@google/genai';
+import {  tools } from './tools.js';
+import { getUserName, getSupabaseResume, getSupabaseSession, getSupabaseStartedAt, storeSupabaseConversation } from "./service/userServices.js";
+
 
 dotenv.config({ path: '.env.local' });
 
 const ai = new GoogleGenAI({apiKey: process.env.GOOGLE_API_KEY!});
+
+let conversation = '';
 
 const evaluatorModel = ai.chats.create({
   model: "gemini-2.0-flash-lite",
@@ -46,9 +49,10 @@ export default defineAgent({
 
     // Extract metadata from room configuration
     let systemInstruction = '';
-    let jobRole = 'Software Engineer'; // Default
-    let candidateName = 'Candidate'; // Default
-    let resume = ''; // Default
+    let jobRole = 'Software Engineer'; 
+    let candidateName = 'Candidate';
+    let sessionId = ''; 
+    let resume = ''; 
 
     try {
       if (ctx.room.metadata) {
@@ -57,11 +61,13 @@ export default defineAgent({
         jobRole = metadata.jobRole || jobRole;
         candidateName = metadata.userName || candidateName;
         resume = metadata.resume || resume;
+        sessionId = metadata.sessionId || sessionId;
 
         console.log('[agent] Room metadata extracted successfully:', {
           jobRole,
           candidateName,
           resume: resume ? `${resume.substring(0, 50)}...` : 'No resume',
+          sessionId,
         });
       } else {
         console.log('[agent] No metadata found in room');
@@ -136,6 +142,7 @@ export default defineAgent({
         const text = item.textContent;
         if (text) {
           console.log('[Agent Spoke]:', text);
+          conversation += 'Agent: ' + text + '\n';
           lastAgentMessage = text;
         }
       }
@@ -146,9 +153,7 @@ export default defineAgent({
         
         if (text && lastAgentMessage) {
           console.log('[User Spoke]:', text);
-          
-          // Trigger your evaluator function here
-          // This assumes runEvaluation is defined in your scope (as per previous step)
+          conversation += 'User: ' + text + '\n';
           runEvaluation(lastAgentMessage, text);
         }
       }
@@ -162,10 +167,8 @@ export default defineAgent({
         inputOptions: {
           noiseCancellation: BackgroundVoiceCancellation(),
         },
-        // This is the PRIMARY agent - it records and responds
-        record: true,
       });
-      console.log('[agent] Interview session started successfully (PRIMARY)');
+      console.log('[agent] Interview session started successfully');
     } catch (error) {
       console.error('[agent] Error starting interview session:', error);
       throw error;
@@ -175,9 +178,6 @@ export default defineAgent({
       instructions: 'Greet the candidate and begin the interview without waiting for a prompt.',
     });
     await handle.waitForPlayout();
-
-
-
   },
 });
 

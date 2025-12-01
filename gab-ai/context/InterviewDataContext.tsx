@@ -7,6 +7,7 @@ interface InterviewData {
   job: string;
   resume: string;
   userName: string;
+  sessionId: string;
 }
 
 

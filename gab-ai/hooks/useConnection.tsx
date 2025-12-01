@@ -10,6 +10,7 @@ export interface InterviewData {
   job: string;
   resume: string;
   userName: string;
+  sessionId?: string;
 }
 
 interface ConnectionContextType {
@@ -56,12 +57,13 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
       hasJob: !!interviewData?.job,
       hasResume: !!interviewData?.resume,
       hasUserName: !!interviewData?.userName,
+      hasSessionId: !!interviewData?.sessionId,
       isPassed: !!passedInterviewData,
     });
 
     // Always use custom endpoint to pass interview data
     return TokenSource.custom(async () => {
-      const endpoint = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT || '/api/connection-details';
+      const endpoint = '/api/connection-details';
       const url = new URL(endpoint, window.location.origin);
 
       // Use ref to get the latest interview data (passed data takes priority)
@@ -70,6 +72,7 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
         job: latestData?.job,
         resume: latestData?.resume ? `${latestData.resume.substring(0, 50)}...` : 'EMPTY',
         userName: latestData?.userName,
+        sessionId: latestData?.sessionId || 'MISSING',
       });
 
       try {
@@ -85,10 +88,10 @@ export function ConnectionProvider({ appConfig, children }: ConnectionProviderPr
                   agents: [{ agent_name: appConfig.agentName }],
                 }
               : undefined,
-            // Pass interview data to connection-details - use ref data which is always latest
             job: latestData?.job || '',
             resume: latestData?.resume || '',
             userName: latestData?.userName || '',
+            sessionId: latestData?.sessionId || '',
           }),
         });
         const connectionDetails = await res.json();

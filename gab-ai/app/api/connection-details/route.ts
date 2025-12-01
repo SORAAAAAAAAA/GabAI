@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     const job = body?.job || '';
     const resume = body?.resume || '';
     const userName = body?.userName || '';
+    const sessionId = body?.sessionId || '';
 
     console.log('[connection-details] Received data:', {
       agentName,
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
         jobRole: job,
         resume: resume,
         userName: userName,
+        sessionId: sessionId,
       }),
     });
 

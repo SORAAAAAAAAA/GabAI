@@ -38,8 +38,8 @@ export default function Sidebar() {
             <NavItem 
               icon={<LayoutDashboard className="w-4 h-4" />} 
               label="Overview" 
-              href="/" 
-              active={pathname === '/'} 
+              href="/dashboard" 
+              active={pathname === '/dashboard'} 
             />
             <NavItem 
               icon={<PlayCircle className="w-4 h-4" />} 
