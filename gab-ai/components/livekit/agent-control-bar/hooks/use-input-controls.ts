@@ -33,6 +33,7 @@ export function useInputControls({
   const microphoneToggle = useTrackToggle({
     source: Track.Source.Microphone,
     onDeviceError: (error) => onDeviceError?.({ source: Track.Source.Microphone, error }),
+    initialState: false, // Start with microphone muted
   });
 
   const cameraToggle = useTrackToggle({

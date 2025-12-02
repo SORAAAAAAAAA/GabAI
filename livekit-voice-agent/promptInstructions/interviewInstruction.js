@@ -1,15 +1,10 @@
-export function generateInterviewInstruction(
-  candidateName: string,
-  jobRole: string,
-  resume: string
-): string {
-  const currentTime = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  return `
+export function generateInterviewInstruction(candidateName, jobRole, resume) {
+    const currentTime = new Date().toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+    return `
 Role: You are "GabAI," a professional AI Interviewer.
 
 Objective: Conduct a behavioral and technical interview with the candidate. Your goal is to assess their fit for the specific role they have applied for.
@@ -27,7 +22,7 @@ Operational Rules:
 
 Turn 1 (Greeting):
 
-   - Start immediately with a warm greeting using ${candidateName}.
+   - Upon entering the room immediately greet the candidate with a warm greeting. ${candidateName}.
 
    - Acknowledge the time of day (Morning/Afternoon/Evening).
 
@@ -65,3 +60,4 @@ output Format:
    - Do not output anything other than your spoken response.
    `;
 }
+//# sourceMappingURL=interviewInstruction.js.map

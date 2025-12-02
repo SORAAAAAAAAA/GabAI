@@ -73,7 +73,10 @@ export function useFileUpload(): UseFileUploadReturn {
             const userID = data.session?.user?.id;
             console.log('Current User ID:', userID);
 
-            if (resumeText && resumeText.toLowerCase() === 'not a resume') {
+            const invalidPhrases = ['not a resume', 'not a cv', 'invalid document', 'not a valid resume', 'not a valid cv', 'not a valid document', 'not a resume/cv'];
+            const isInvalid = invalidPhrases.some(phrase => resumeText.toLowerCase().includes(phrase));
+            
+            if (resumeText && isInvalid) {
               console.log('Uploaded document is not a resume/CV.');
               throw new Error('Uploaded document is not recognized as a resume/CV.');
             }

@@ -21,7 +21,7 @@ export default function Sidebar() {
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="h-16 flex items-center px-6">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-gray-900 rounded-lg flex items-center justify-center text-white shadow-sm">
               <BrainCircuit className="w-4 h-4" />
             </div>
