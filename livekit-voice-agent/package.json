@@ -1,0 +1,29 @@
+{
+  "name": "livekit-voice-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "download-files": "tsc && node agent.js download-files",
+    "dev": "tsx agent.ts dev"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.23.0",
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@livekit/agents": "~1.0.21",
+    "@livekit/agents-plugin-google": "1.x",
+    "@livekit/agents-plugin-livekit": "^1.0.22",
+    "@livekit/noise-cancellation-node": "~0.1.9",
+    "@supabase/supabase-js": "^2.86.0",
+    "dotenv": "^17.2.3"
+  }
+}

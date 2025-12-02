@@ -8,6 +8,7 @@ import { useSessionExit } from '@/hooks/useSessionExit';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 
+
 export default function SessionLayout({
   children,
 }: {
@@ -51,6 +52,7 @@ export default function SessionLayout({
       <ModalContainer hideBackground>
         <div className="flex h-screen w-screen relative bg-white">
           <Sidebar isInSessionLayout={true} />
+          
           <div className="flex-1 overflow-auto bg-white">
             {children}
           </div>

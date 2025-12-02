@@ -1,25 +1,10 @@
-'use client';
-import React, { useState } from 'react';
-import Logout from '@/components/logout';
-import InterviewSetup from '@/app/session/components/InterviewSetup';
-import ResumeUpload from '@/app/session/components//ResumeUpload';
+import { headers } from 'next/headers';
+import { App } from '@/components/app/app';
+import { getAppConfig } from '@/lib/utils';
 
-export default function SessionPage() {
-  const [parsedResume, setParsedResume] = useState('');
+export default async function Page() {
+  const hdrs = await headers();
+  const appConfig = await getAppConfig(hdrs);
 
-  return (
-    <div className="w-full h-full flex flex-col p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Your journey to landing your dream job starts here.
-        </h1>
-        <Logout />
-      </div>
-
-      <div className="flex space-x-8 flex-1 min-h-0">
-        <InterviewSetup resumeText={parsedResume} />
-        <ResumeUpload onFileUploaded={setParsedResume} />
-      </div>
-    </div>
-  );
+  return <App appConfig={appConfig} />;
 }

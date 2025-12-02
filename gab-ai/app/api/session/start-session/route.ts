@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/supabaseServer";
+import { createClient } from "@/infra/supabase/supabaseServer";
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +10,6 @@ export async function POST(req: Request) {
       return Response.json({ error: "Missing jobTitle" }, { status: 400 });
     }
 
-    console.log('[start-session] Creating Supabase client...');
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,7 +22,7 @@ export async function POST(req: Request) {
     const { data: sessionData, error } = await supabase
       .from("sessions")
       .insert({
-        user_id: user_id, // ✅ Use session's user ID, not from request body
+        user_id: user_id, 
         job_title: job_title,
         status: "active",
       })
@@ -43,7 +42,6 @@ export async function POST(req: Request) {
       sessionId: sessionData?.id,
       jobTitle: job_title,
       resume: resume,
-      wsUrl: `${process.env.WS_SERVER_URL}?sessionToken=${sessionData?.id}`,
     });
   } catch (error) {
     console.error("[start-session] Catch block error:", error);
