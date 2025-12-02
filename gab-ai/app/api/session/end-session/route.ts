@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     // 1️⃣ Update the session status to "ended"
     const { error } = await supabase.from('sessions').update({ status: 'ended' }).eq('id', sessionId);
-
+    
     if (error) throw error;
 
     return Response.json({ message: "Session ended successfully" });
