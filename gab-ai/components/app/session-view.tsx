@@ -69,7 +69,7 @@ export const SessionView = ({
   const { messages } = useSessionMessages(session);
   const [chatOpen, setChatOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const { isConnectionActive, startDisconnectTransition } = useConnection();
+  const { isConnectionActive, endInterviewSession } = useConnection();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const controls: ControlBarControls = {
@@ -126,7 +126,7 @@ export const SessionView = ({
             <AgentControlBar
               controls={controls}
               isConnectionActive={isConnectionActive}
-              onDisconnect={startDisconnectTransition}
+              onDisconnect={endInterviewSession}
               onChatOpenChange={setChatOpen}
             />
           </div>

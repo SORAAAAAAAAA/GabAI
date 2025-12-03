@@ -6,6 +6,9 @@ import type { AppConfig } from '@/app-config';
 import { SessionView } from '@/components/app/session-view';
 import { WelcomeView } from '@/components/app/welcome-view';
 import { useConnection } from '@/hooks/useConnection';
+import { useEvaluator } from '@/hooks/useEvaluator';
+import { EndSessionLoader } from "@/components/endSessionLoader";
+import { OverallFeedback } from '@/components/overallFeedback';
 
 const MotionWelcomeView = motion.create(WelcomeView);
 const MotionSessionView = motion.create(SessionView);
@@ -33,6 +36,8 @@ interface ViewControllerProps {
 
 export function ViewController({ appConfig }: ViewControllerProps) {
   const { isConnectionActive, connect, onDisconnectTransitionComplete } = useConnection();
+  const { isEvaluatorActive, evaluationData, isEvaluationLoading } = useEvaluator();
+  
 
   const handleAnimationComplete = useCallback(
     (definition: AnimationDefinition) => {
@@ -47,7 +52,7 @@ export function ViewController({ appConfig }: ViewControllerProps) {
   return (
     <AnimatePresence mode="wait">
       {/* Welcome view */}
-      {!isConnectionActive && (
+      {!isConnectionActive && !isEvaluatorActive && (
         <MotionWelcomeView
           key="welcome"
           {...VIEW_MOTION_PROPS}
@@ -55,13 +60,29 @@ export function ViewController({ appConfig }: ViewControllerProps) {
         />
       )}
       {/* Session view */}
-      {isConnectionActive && (
+      {isConnectionActive && !isEvaluatorActive && (
         <MotionSessionView
           key="session-view"
           {...VIEW_MOTION_PROPS}
           appConfig={appConfig}
           onAnimationComplete={handleAnimationComplete}
         />
+      )}
+      {/* End Session Loader */}
+      {isEvaluatorActive && isEvaluationLoading && (
+        <EndSessionLoader isVisible={true} />
+      )}
+      {/* Evaluation Feedback */}
+      {isEvaluatorActive && !isEvaluationLoading && evaluationData && (
+        <motion.div
+          key="feedback"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <OverallFeedback feedbackData={evaluationData} isLoading={false} />
+        </motion.div>
       )}
     </AnimatePresence>
   );

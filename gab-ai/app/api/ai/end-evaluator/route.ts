@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { endEvaluator } from "@/utils/api/api.evaluatorCall";
 
 
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
@@ -11,18 +12,53 @@ export async function POST(req: Request) {
     console.log("Evaluating Session with ID:", sessionId);
 
     if (!sessionId) {
-      return Response.json({ error: "Missing sessionId" }, { status: 400 });
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
     }
 
     // Fetch conversation and evaluation data from Supabase
-    const { data: evaluationData} = await supabase.from('evaluations').select('evaluationData').eq('sessionID', sessionId);
-    const { data: conversationData} = await supabase.from('messages').select('content').eq('session_id', sessionId);
+    const { data: evaluationData, error: evalError } = await supabase
+      .from('evaluations')
+      .select('evaluationData')
+      .eq('sessionID', sessionId);
+
+    const { data: conversationData, error: convError } = await supabase
+      .from('messages')
+      .select('content')
+      .eq('session_id', sessionId);
+
+    if (evalError) {
+      console.error('Error fetching evaluation data:', evalError);
+      return NextResponse.json({ error: "Failed to fetch evaluation data" }, { status: 400 });
+    }
+
+    if (convError) {
+      console.error('Error fetching conversation data:', convError);
+      return NextResponse.json({ error: "Failed to fetch conversation data" }, { status: 400 });
+    }
     
     const evaluationResponse = await endEvaluator(JSON.stringify(conversationData), JSON.stringify(evaluationData));
+    console.log("Evaluation Response:", evaluationResponse);
 
-    NextResponse.json({ message: "Evaluated session successfully" });
-    return Response.json({ evaluationResponse });
+    const { error: insertError } = await supabase
+      .from('sessions')
+      .insert({
+        id: sessionId,
+        overallFeedback: JSON.stringify(evaluationResponse),
+      })
+      .eq('id', sessionId);
+
+    if (insertError) {
+      console.error('Error inserting evaluation data:', insertError);
+      return NextResponse.json({ error: "Failed to insert evaluation data"
+      })
+    } 
+
+    return NextResponse.json({ message: "Evaluated session successfully", evaluationResponse });
   } catch (error) {
-    return Response.json({ error: error }, { status: 500 });
+    console.error('[end-evaluator] Error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }
