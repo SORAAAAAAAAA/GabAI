@@ -6,6 +6,7 @@ import { ViewController } from '@/components/app/view-controller';
 import { Toaster } from '@/components/livekit/toaster';
 import { useAgentErrors } from '@/hooks/useAgentErrors';
 import { ConnectionProvider } from '@/hooks/useConnection';
+import { EvaluatorProvider } from '@/hooks/useEvaluator';
 import { useDebugMode } from '@/hooks/useDebug';
 import { InterviewDataProvider } from '@/context/InterviewDataContext';
 import { EvaluationHandler } from '@/components/livekit/evaluationToast';
@@ -26,16 +27,18 @@ interface AppProps {
 export function App({ appConfig }: AppProps) {
   return (
     <InterviewDataProvider>
-      <ConnectionProvider appConfig={appConfig}>
-        <AppSetup />
-        <main className="h-full w-full">
-          <EvaluationHandler />
-          <ViewController appConfig={appConfig} />
-        </main>
-        <StartAudio label="Start Audio" />
-        <RoomAudioRenderer />
-        <Toaster />
-      </ConnectionProvider>
+      <EvaluatorProvider>
+        <ConnectionProvider appConfig={appConfig}>
+          <AppSetup />
+          <main className="h-full w-full">
+            <EvaluationHandler />
+            <ViewController appConfig={appConfig} />
+          </main>
+          <StartAudio label="Start Audio" />
+          <RoomAudioRenderer />
+          <Toaster />
+        </ConnectionProvider>
+      </EvaluatorProvider>
     </InterviewDataProvider>
   );
 }

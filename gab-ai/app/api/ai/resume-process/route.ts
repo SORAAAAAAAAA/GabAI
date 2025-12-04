@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
+import { resumeParserInstruction } from "@/utils/systemInstructions/resumeParserInstruction";
 
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
         const genAI = ai.getGenerativeModel({model:"gemini-2.5-flash-lite"});
 
         const result = await genAI.generateContent([
-            "Determine the document if its a resume/cv and provide a concise summary of the candidate's qualifications, experience, and skills based on the content of the resume. If not a resume/cv, always respond with this message only do not add anything else:'Not a resume'.",
+            resumeParserInstruction,
             {
                 inlineData: {
                     mimeType: 'application/pdf',

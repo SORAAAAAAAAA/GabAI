@@ -1,14 +1,14 @@
+'use client';
 import React from 'react';
 import { Play } from 'lucide-react';
-import Link from 'next/link';
 
-export const WelcomeBanner: React.FC = () => {
+export default function WelcomeBanner() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-[0_2px_4px_rgba(0,0,0,0.02)] relative overflow-hidden group">
       <div className="relative z-10 max-w-lg">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-2">Hey, Test!</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-2">Hey, {userName}!</h1>
         <p className="text-gray-500 mb-8 leading-relaxed">
-          Ready for your next interview? Users who practice consistently improve their score by 40%. Let's sharpen your skills.
+          Ready for your next interview? Users who practice consistently improve their score by 40%. Let&apos;s sharpen your skills.
         </p>
         
         <div className="flex flex-wrap items-center gap-3">

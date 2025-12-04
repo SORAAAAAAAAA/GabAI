@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const { data: sessionData, error } = await supabase
       .from("sessions")
       .insert({
-        user_id: user_id, // 
+        user_id: user_id, 
         job_title: job_title,
         status: "active",
       })

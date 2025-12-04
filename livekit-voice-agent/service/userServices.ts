@@ -30,6 +30,21 @@ export async function getUserName(userId: UserIdentity): Promise<string | null> 
   }
 }
 
+export async function storeSupabaseEvaluation(sessionId: string, evaluation: any) {
+  const { error } = await supabase
+        .from("evaluations")
+        .insert({
+                sessionID: sessionId,
+                evaluationData: evaluation,
+        })
+        .select("id")
+        .single();
+        
+    if (error) {
+        throw new Error("Error storing evaluation: " + error);
+    }
+}
+
 export async function getSupabaseSession(sessionId: string) {
     
     const {data: sessionData, error: sessionError} = await supabase
@@ -47,6 +62,20 @@ export async function getSupabaseSession(sessionId: string) {
     }
 
     return {user_id: sessionData.user_id, job_title: sessionData.job_title};
+}
+
+export async function endSupabaseSession(sessionId: string) {
+
+    const { error } = await supabase
+            .from('sessions')
+            .update({
+                status: 'Ended',
+            })
+            .eq('id', sessionId);
+
+    if (error) {
+        throw new Error("Error ending session: " + error.message);
+    }
 }
 
 export async function getSupabaseResume(userId: string) {
