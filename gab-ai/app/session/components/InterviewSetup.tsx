@@ -3,15 +3,13 @@ import { useSessionStart } from '../hooks/useSessionStart';
 import SessionLoader from './SessionLoader';
 import type { InterviewData } from '@/hooks/useConnection';
 
-
 interface InterviewSetupProps {
   onStartInterview: (data: InterviewData) => void;
 }
 
-
 export default function InterviewSetup({ onStartInterview }: InterviewSetupProps) {
   const [jobRole, setJobRole] = useState('');
-  const { sessionStart, startInterview} = useSessionStart();
+  const { sessionStart, startInterview } = useSessionStart();
 
   const handleStart = async () => {
     try {
@@ -24,33 +22,47 @@ export default function InterviewSetup({ onStartInterview }: InterviewSetupProps
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-md flex-1 flex flex-col h-full">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 flex-1 flex flex-col relative">
+
       {sessionStart && <SessionLoader message="Starting your interview session..." />}
 
-      <h2 className="text-lg font-medium text-gray-900 mb-4">
-        Get Ready for Your Interview
-      </h2>
+      <div className="flex flex-col h-full">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">
+          Get Ready for Your Interview
+        </h2>
 
-      <div className="mb-6">
-        <label className="block text-gray-900 text-sm font-medium mb-2">
-          Desired Job Role
-        </label>
-        <input
-          type="text"
-          value={jobRole}
-          onChange={(e) => setJobRole(e.target.value)}
-          placeholder="e.g. Software Engineer"
-          className="w-full px-4 py-3 rounded-lg border text-gray-900"
-        />
+        {/* Input */}
+        <div className="mb-8">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Desired Job Role
+          </label>
+
+          <input
+            type="text"
+            value={jobRole}
+            onChange={(e) => setJobRole(e.target.value)}
+            placeholder="e.g. Software Engineer"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 
+                       text-gray-900 placeholder-gray-400 
+                       focus:ring-2 focus:ring-black/10 focus:border-black
+                       transition"
+          />
+        </div>
+
+        {/* Button */}
+        <button
+          onClick={handleStart}
+          disabled={sessionStart}
+          className="
+            w-full py-3 px-6 rounded-lg font-medium text-white 
+            bg-black hover:bg-gray-900 
+            disabled:opacity-50 disabled:cursor-not-allowed 
+            transition
+          "
+        >
+          Start Interview Session
+        </button>
       </div>
-
-      <button
-        onClick={handleStart}
-        disabled={sessionStart}
-        className="cursor-pointer w-full bg-black text-white py-3 px-6 rounded-lg"
-      >
-        Start Interview Session
-      </button>
     </div>
   );
 }

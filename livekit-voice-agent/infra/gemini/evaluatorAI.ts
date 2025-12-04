@@ -8,7 +8,7 @@ dotenv.config({ path: '.env.local' });
 const ai = new GoogleGenAI({apiKey: process.env.GOOGLE_API_KEY!});
 
 export const evaluatorModel = ai.chats.create({
-  model: "gemini-2.0-flash-lite",
+  model: "gemini-2.5-flash-lite",
   history: [
     {
       role: "user",

@@ -83,6 +83,7 @@ export default defineAgent({
     if (!ctx.room.isConnected) return;
 
     try {
+    
       const result = await evaluatorModel.sendMessage({
         message: `Interviewer asked: ${question}\nCandidate answered: ${answer}\n Evaluate this response.`
       });

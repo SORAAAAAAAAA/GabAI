@@ -1,11 +1,12 @@
 export interface Session {
   id: string;
-  topic: string;
+  job_title: string;
   subtitle: string;
-  date: string;
+  started_at: string;
   score: number;
-  icon: React.ReactNode;
-  iconBg: string;
+  overall_feedback?: unknown;
+  icon?: React.ReactNode;
+  iconBg?: string;
   iconBorder: string;
   scoreColor: string;
 }
