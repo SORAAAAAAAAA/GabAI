@@ -1,43 +1,42 @@
 import React from 'react';
-import Link from 'next/link';
 import { Code2, MessageSquare, Braces } from 'lucide-react';
-import SessionRow from '@/components/dashboard/SessionRow';
-import { Session } from '@/types';
+import { SessionRow } from '@/components/dashboard/session-row';
+import Link from 'next/link';
 
-export default function RecentSessions() {
-  const sessions: Session[] = [
+export const RecentSessions: React.FC = () => {
+  const sessions = [
     {
-      id: '1',
-      topic: 'System Design',
+      icon: <Code2 className="w-4 h-4" />,
+      bgColor: 'bg-indigo-50',
+      borderColor: 'border-indigo-100',
+      iconColor: 'text-indigo-600',
+      title: 'System Design',
       subtitle: 'Day 5 Session',
       date: 'Oct 24, 2023',
-      score: 75,
-      icon: <Code2 className="w-4 h-4" />,
-      iconBg: 'bg-indigo-50',
-      iconBorder: 'border-indigo-100',
-      scoreColor: 'bg-green-50 text-green-700 border-green-100'
+      score: '75%',
+      scoreStyle: 'bg-green-50 text-green-700 border-green-100'
     },
     {
-      id: '2',
-      topic: 'Behavioral Check',
+      icon: <MessageSquare className="w-4 h-4" />,
+      bgColor: 'bg-orange-50',
+      borderColor: 'border-orange-100',
+      iconColor: 'text-orange-600',
+      title: 'Behavioral Check',
       subtitle: 'Day 4 Session',
       date: 'Oct 22, 2023',
-      score: 65,
-      icon: <MessageSquare className="w-4 h-4" />,
-      iconBg: 'bg-orange-50',
-      iconBorder: 'border-orange-100',
-      scoreColor: 'bg-yellow-50 text-yellow-700 border-yellow-100'
+      score: '65%',
+      scoreStyle: 'bg-yellow-50 text-yellow-700 border-yellow-100'
     },
     {
-      id: '3',
-      topic: 'Algorithm Basics',
+      icon: <Braces className="w-4 h-4" />,
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-100',
+      iconColor: 'text-blue-600',
+      title: 'Algorithm Basics',
       subtitle: 'Day 3 Session',
       date: 'Oct 18, 2023',
-      score: 45,
-      icon: <Braces className="w-4 h-4" />,
-      iconBg: 'bg-blue-50',
-      iconBorder: 'border-blue-100',
-      scoreColor: 'bg-gray-100 text-gray-700 border-gray-200'
+      score: '45%',
+      scoreStyle: 'bg-gray-100 text-gray-700 border-gray-200'
     }
   ];
 
@@ -50,12 +49,10 @@ export default function RecentSessions() {
             History
           </span>
         </div>
-        <Link 
-          href="/history" 
-          className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors"
-        >
-          View All
+        <Link href="/history">
+          <button className="text-sm text-gray-500 hover:text-gray-900 font-medium cursor-pointer">View All</button>
         </Link>
+        
       </div>
       
       <div className="overflow-x-auto">
@@ -68,13 +65,13 @@ export default function RecentSessions() {
               <th className="px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {sessions.map((session) => (
-              <SessionRow key={session.id} session={session} />
+          <tbody className="divide-y divide-gray-50 cursor-pointer">
+            {sessions.map((session, index) => (
+              <SessionRow key={index} {...session} />
             ))}
           </tbody>
         </table>
       </div>
     </div>
   );
-}
+};

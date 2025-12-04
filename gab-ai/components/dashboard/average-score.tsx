@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function AverageScoreCard() {
+export const AverageScoreCard: React.FC = () => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-[0_2px_4px_rgba(0,0,0,0.02)] flex flex-col justify-between">
       <div className="flex justify-between items-start">
@@ -22,4 +22,4 @@ export default function AverageScoreCard() {
       </div>
     </div>
   );
-}
+};
