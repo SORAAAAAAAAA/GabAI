@@ -1,6 +1,6 @@
 import React from 'react';
 import { Header } from '@/components/dashboard/header';
-import { WelcomeBanner } from '@/components/dashboard/welcome-banner';
+import WelcomeBanner from '@/components/dashboard/welcome-banner';
 import { RecentSessions } from '@/components/dashboard/recent-sesion';
 import { AverageScoreCard } from '@/components/dashboard/average-score';
 import { MotivationalQuote } from '@/components/dashboard/motivational-quote';
