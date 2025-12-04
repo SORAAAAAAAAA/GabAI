@@ -59,6 +59,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       )}
     >
       <head>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         {styles && <style>{styles}</style>}
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />

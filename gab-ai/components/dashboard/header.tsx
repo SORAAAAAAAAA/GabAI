@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bell, Menu } from 'lucide-react';
 
-export default function Header() {
+export const Header: React.FC = () => {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-10">
       <div className="flex items-center text-sm">
@@ -21,4 +21,4 @@ export default function Header() {
       </div>
     </header>
   );
-}
+};

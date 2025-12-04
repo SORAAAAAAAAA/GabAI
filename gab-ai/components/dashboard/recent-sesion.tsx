@@ -1,13 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import { Code2, MessageSquare, Braces } from 'lucide-react';
 import SessionRow from '@/components/dashboard/SessionRow';
 import { Session } from '@/types';
 import { getRecentSessions } from '@/utils/api/api.getrecentSessions';
 import { parseOverallFeedback, getScoreColor } from '@/utils/formatSessions';
 
 
-export default async function RecentSessions() {
+export async function RecentSessions() {
   const dbSessions = await getRecentSessions();
 
   console.log('Recent Sessions:', dbSessions);
@@ -44,12 +43,10 @@ export default async function RecentSessions() {
             History
           </span>
         </div>
-        <Link 
-          href="/history" 
-          className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors"
-        >
-          View All
+        <Link href="/history">
+          <button className="text-sm text-gray-500 hover:text-gray-900 font-medium cursor-pointer">View All</button>
         </Link>
+        
       </div>
       
       <div className="overflow-x-auto">
@@ -79,4 +76,4 @@ export default async function RecentSessions() {
       </div>
     </div>
   );
-}
+};
