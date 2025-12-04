@@ -1,8 +1,7 @@
 import { createClient } from "@/infra/supabase/supabaseServer";
 
-const supabase = await createClient();
-
 export async function getAllSessions() {
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('sessions')
         .select('*')

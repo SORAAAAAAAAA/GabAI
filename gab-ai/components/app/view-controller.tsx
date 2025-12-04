@@ -60,7 +60,7 @@ export function ViewController({ appConfig }: ViewControllerProps) {
         />
       )}
       {/* Session view */}
-      {isConnectionActive && !isEvaluatorActive && (
+      {isConnectionActive && (
         <MotionSessionView
           key="session-view"
           {...VIEW_MOTION_PROPS}
@@ -73,7 +73,7 @@ export function ViewController({ appConfig }: ViewControllerProps) {
         <EndSessionLoader isVisible={true} />
       )}
       {/* Evaluation Feedback */}
-      {isEvaluatorActive && !isEvaluationLoading && evaluationData && (
+      {!isEvaluationLoading && evaluationData && (
         <motion.div
           key="feedback"
           initial={{ opacity: 0 }}
@@ -81,7 +81,7 @@ export function ViewController({ appConfig }: ViewControllerProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <OverallFeedback feedbackData={evaluationData} isLoading={false} />
+          <OverallFeedback feedbackData={evaluationData} />
         </motion.div>
       )}
     </AnimatePresence>

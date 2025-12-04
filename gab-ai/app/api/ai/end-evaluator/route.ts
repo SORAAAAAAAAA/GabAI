@@ -15,6 +15,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
     }
 
+    await new Promise(resolve => setTimeout(resolve, 7000)); // Wait for 7 seconds to ensure data consistency
+
     // Fetch conversation and evaluation data from Supabase
     const { data: evaluationData, error: evalError } = await supabase
       .from('evaluations')
@@ -41,9 +43,8 @@ export async function POST(req: Request) {
 
     const { error: insertError } = await supabase
       .from('sessions')
-      .insert({
-        id: sessionId,
-        overallFeedback: JSON.stringify(evaluationResponse),
+      .update({
+        overall_feedback: JSON.stringify(evaluationResponse),
       })
       .eq('id', sessionId);
 

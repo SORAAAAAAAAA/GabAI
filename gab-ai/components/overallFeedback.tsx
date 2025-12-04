@@ -43,7 +43,6 @@ interface OverallFeedbackData {
 
 interface OverallFeedbackProps {
   feedbackData: OverallFeedbackData | null;
-  isLoading?: boolean;
   onRetry?: () => void;
 }
 
@@ -78,7 +77,6 @@ const ScoreCircle = ({ score, label }: { score: number; label: string }) => {
 
 export const OverallFeedback: React.FC<OverallFeedbackProps> = ({
   feedbackData,
-  isLoading = false,
   onRetry,
 }) => {
   const [displayData, setDisplayData] = useState<OverallFeedbackData | null>(null);
@@ -88,19 +86,6 @@ export const OverallFeedback: React.FC<OverallFeedbackProps> = ({
       setDisplayData(feedbackData);
     }
   }, [feedbackData]);
-
-  if (isLoading) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center bg-[#FAFAFA]">
-        <div className="text-center">
-          <div className="animate-spin mb-4 inline-block">
-            <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-900 rounded-full" />
-          </div>
-          <p className="text-sm text-gray-500">Processing your feedback...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!displayData) {
     return (
@@ -117,6 +102,8 @@ export const OverallFeedback: React.FC<OverallFeedbackProps> = ({
       </div>
     );
   }
+
+  console.log('[OverallFeedback] Displaying feedback data:', displayData);
 
   const { session_summary, metrics, qualitative_analysis, sentiment_report } = displayData;
 
