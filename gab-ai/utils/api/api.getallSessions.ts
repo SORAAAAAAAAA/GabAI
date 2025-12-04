@@ -5,7 +5,7 @@ export async function getAllSessions() {
     const { data, error } = await supabase
         .from('sessions')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('started_at', { ascending: false });
 
     if (error) {
         throw new Error(error.message);

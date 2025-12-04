@@ -15,7 +15,11 @@ export default function InterviewList({ interviews, onInterviewClick }: Intervie
   const totalInterviews = interviews.length;
   const avgScore = Math.round(interviews.reduce((acc, item) => acc + item.score, 0) / interviews.length);
   const bestScore = Math.max(...interviews.map(item => item.score));
-  const thisMonth = 3; // You can calculate this dynamically
+  const thisMonth = interviews.filter(item => {
+    const interviewDate = new Date(item.date);
+    const now = new Date();
+    return interviewDate.getMonth() === now.getMonth() && interviewDate.getFullYear() === now.getFullYear();
+  }).length;
 
   return (
     <div className="animate-in fade-in duration-300 space-y-8">

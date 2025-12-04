@@ -25,7 +25,7 @@ export default function InterviewDetail({ interview, onBack }: InterviewDetailPr
 
       <DetailHeader interview={interview} />
       <ScoreSection interview={interview} />
-      <FeedbackSection />
+      <FeedbackSection interview={interview} />
     </div>
   );
 }

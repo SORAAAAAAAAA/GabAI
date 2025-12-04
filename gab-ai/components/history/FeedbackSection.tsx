@@ -1,23 +1,17 @@
 'use client';
 import React from 'react';
 import { Sparkles, Check, ArrowUpRight } from 'lucide-react';
+import { InterviewHistory } from '@/app/history/page';
 
-export default function FeedbackSection() {
-  const strengths = [
-    'Excellent breakdown of the system architecture question. You effectively separated database scaling from application logic scaling.',
-    'Maintained strong eye contact simulation and clear vocal projection throughout the behavioral section.'
-  ];
+interface FeedbackSectionProps {
+  interview: InterviewHistory;
+}
 
-  const improvements = [
-    'When discussing conflict resolution, the answer was slightly lengthy. Try to condense the "Action" part of your STAR response.',
-    'Technical depth on React Hooks could be deeper; review `useMemo` specifically for high-performance scenarios.'
-  ];
-
-  const timeline = [
-    { id: 1, title: 'Introduction', time: '00:00 - 03:20', badge: 'Perfect', badgeColor: 'bg-gray-200 text-gray-800' },
-    { id: 2, title: 'System Design', time: '03:21 - 15:45', badge: 'Good', badgeColor: 'bg-gray-200 text-gray-800' },
-    { id: 3, title: 'Algorithm', time: '15:46 - 32:00', badge: 'Excellent', badgeColor: 'bg-gray-900 text-white' }
-  ];
+export default function FeedbackSection({ interview }: FeedbackSectionProps) {
+  const strengths = interview.feedback?.qualitative_analysis?.key_strengths ?? [];
+  const improvements = interview.feedback?.qualitative_analysis?.primary_weaknesses ?? [];
+  const nextSteps = interview.feedback?.qualitative_analysis?.actionable_next_steps ?? [];
+  const scoreTrend = interview.feedback?.score_trend ?? [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -55,33 +49,83 @@ export default function FeedbackSection() {
                 ))}
               </ul>
             </div>
+
+            {/* Actionable Next Steps */}
+            {nextSteps.length > 0 && (
+              <div className="border-t border-gray-100 pt-5">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">Actionable Next Steps</h4>
+                <ol className="space-y-3">
+                  {nextSteps.map((step, index) => (
+                    <li key={index} className="flex items-start gap-3 text-sm text-gray-600">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      <span className="leading-relaxed">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Timeline Column */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 h-full flex flex-col">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Question Timeline</h3>
-        <div className="flex-1 space-y-6 overflow-y-auto pr-2 relative">
-          {/* Timeline Line */}
-          <div className="absolute left-[19px] top-2 bottom-0 w-px bg-gray-200"></div>
-
-          {timeline.map((item) => (
-            <div key={item.id} className="relative flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 z-10 shadow-sm">
-                <span className="text-xs font-semibold text-gray-900">
-                  {item.id.toString().padStart(2, '0')}
-                </span>
-              </div>
-              <div className="pt-2">
-                <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{item.time}</p>
-                <div className={`mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${item.badgeColor}`}>
-                  {item.badge}
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Question Performance</h3>
+        <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+          {scoreTrend.length > 0 ? (
+            scoreTrend.map((trend, index) => (
+              <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-gray-900">Question {trend.turn}</p>
+                  <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2 py-1 rounded">
+                    Avg: {((trend.clarity + trend.confidence + trend.relevance) / 3).toFixed(0)}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-600">Clarity</span>
+                      <span className="font-semibold text-gray-900">{trend.clarity}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-blue-500 h-full rounded-full" 
+                        style={{ width: `${trend.clarity}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-600">Confidence</span>
+                      <span className="font-semibold text-gray-900">{trend.confidence}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-purple-500 h-full rounded-full" 
+                        style={{ width: `${trend.confidence}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-600">Relevance</span>
+                      <span className="font-semibold text-gray-900">{trend.relevance}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-green-500 h-full rounded-full" 
+                        style={{ width: `${trend.relevance}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">No question performance data available.</p>
+          )}
         </div>
       </div>
     </div>

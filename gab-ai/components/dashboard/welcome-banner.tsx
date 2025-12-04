@@ -5,7 +5,7 @@ import { Play } from 'lucide-react';
 import { useUserName } from '@/hooks/getUserName';
 
 export default function WelcomeBanner() {
-  const userName = useUserName();
+  const { userName } = useUserName();
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-[0_2px_4px_rgba(0,0,0,0.02)] relative overflow-hidden group">

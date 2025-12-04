@@ -8,12 +8,12 @@ interface ScoreSectionProps {
 }
 
 export default function ScoreSection({ interview }: ScoreSectionProps) {
-  // Mock detailed scores - in production, these would come from the interview data
+  // Use actual scores from feedback data
   const detailedScores = {
-    confidence: 92,
-    tone: 88,
-    clarity: 95,
-    relevance: 85
+    confidence: interview.feedback?.metrics?.average_confidence ?? 0,
+    tone: interview.feedback?.sentiment_report?.dominant_tone ?? 'N/A',
+    clarity: interview.feedback?.metrics?.average_clarity ?? 0,
+    relevance: interview.feedback?.metrics?.average_relevance ?? 0
   };
 
   const getHireabilityStatus = (score: number) => {
@@ -64,9 +64,10 @@ export default function ScoreSection({ interview }: ScoreSectionProps) {
         <MetricCard 
           icon={<Music2 className="w-4 h-4 text-gray-900" />}
           title="Tone"
-          score={detailedScores.tone}
-          description="Professional yet conversational."
+          score={typeof detailedScores.tone === 'string' ? 0 : detailedScores.tone}
+          description={typeof detailedScores.tone === 'string' ? detailedScores.tone : "Professional yet conversational."}
           color="gray-800"
+          isTone={typeof detailedScores.tone === 'string'}
         />
 
         {/* Clarity */}
@@ -84,7 +85,7 @@ export default function ScoreSection({ interview }: ScoreSectionProps) {
           title="Relevance"
           score={detailedScores.relevance}
           description="Directly addressed core requirements."
-          color="gray-600"
+          color="black"
         />
       </div>
     </div>
@@ -97,25 +98,28 @@ interface MetricCardProps {
   score: number;
   description: string;
   color: string;
+  isTone?: boolean;
 }
 
-function MetricCard({ icon, title, score, description, color }: MetricCardProps) {
+function MetricCard({ icon, title, score, description, color, isTone }: MetricCardProps) {
   return (
     <div className="bg-white border border-gray-200 p-5 rounded-xl hover:border-gray-300 transition-all">
       <div className="flex justify-between items-start mb-4">
         <div className="p-2 bg-gray-50 rounded-md border border-gray-100">
           {icon}
         </div>
-        <span className="text-lg font-semibold tracking-tight">{score}%</span>
+        <span className="text-lg font-semibold tracking-tight">{isTone ? 'N/A' : `${score}%`}</span>
       </div>
       <h4 className="font-medium text-sm text-gray-900">{title}</h4>
       <p className="text-xs text-gray-500 mt-1">{description}</p>
-      <div className="w-full bg-gray-100 h-1.5 mt-3 rounded-full overflow-hidden">
-        <div 
-          className={`bg-${color} h-full rounded-full`}
-          style={{ width: `${score}%` }}
-        ></div>
-      </div>
+      {!isTone && (
+        <div className="w-full bg-gray-100 h-1.5 mt-3 rounded-full overflow-hidden">
+          <div 
+            className={`bg-${color} h-full rounded-full`}
+            style={{ width: `${Math.min(score, 100)}%` }}
+          ></div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,71 +1,79 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InterviewList from '@/components/history/InterviewList';
 import InterviewDetail from '@/components/history/interviewDetails';
 import PageHeader from '@/components/history/Header';
+import {
+  formatSessionDate,
+  parseEvaluation,
+  type EvaluationData,
+} from '@/utils/formatSessions';
+import {parseEvaluationData} from '@/utils/formatSessions';
 
 export interface InterviewHistory {
   id: number;
-  jobTitle: string;
+  jobTitle: string; 
   date: string;
   score: number;
   status: 'completed' | 'in-progress' | 'cancelled';
   duration: string;
   type: 'technical' | 'behavioral' | 'mixed';
+  feedback?: EvaluationData | null;
+  durationFeedback?: string;
+}
+
+interface DBSession {
+  id: number;
+  job_title: string;
+  started_at: string;
+  status: string;
+  overall_feedback?: unknown;
 }
 
 export default function HistoryPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<InterviewHistory | null>(null);
+  const [interviews, setInterviews] = useState<InterviewHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - replace with actual data from your backend
-  const mockHistory: InterviewHistory[] = [
-    {
-      id: 1,
-      jobTitle: 'Senior Software Engineer',
-      date: '2025-10-03',
-      score: 87,
-      status: 'completed',
-      duration: '45 min',
-      type: 'technical'
-    },
-    {
-      id: 2,
-      jobTitle: 'Data Analyst',
-      date: '2025-09-28',
-      score: 92,
-      status: 'completed',
-      duration: '35 min',
-      type: 'mixed'
-    },
-    {
-      id: 3,
-      jobTitle: 'Product Manager',
-      date: '2025-09-25',
-      score: 78,
-      status: 'completed',
-      duration: '50 min',
-      type: 'behavioral'
-    },
-    {
-      id: 4,
-      jobTitle: 'AI Engineer',
-      date: '2025-09-20',
-      score: 85,
-      status: 'completed',
-      duration: '42 min',
-      type: 'technical'
-    },
-    {
-      id: 5,
-      jobTitle: 'Protocol Engineer',
-      date: '2025-09-15',
-      score: 90,
-      status: 'completed',
-      duration: '38 min',
-      type: 'mixed'
-    }
-  ];
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const response = await fetch('/api/history');
+        const dbSessions = await response.json();
+        
+        if (dbSessions && Array.isArray(dbSessions)) {
+          const transformedInterviews: InterviewHistory[] = dbSessions.map((session: DBSession) => {
+            console.log('Processing session:', session);
+            const evaluationData = parseEvaluation(session.overall_feedback);
+            console.log('Parsed evaluation data:', evaluationData);
+            
+            return {
+              id: session.id,
+              jobTitle: session.job_title,
+              date: formatSessionDate(session.started_at),
+              score: evaluationData.score,
+              status: session.status === 'Ended' ? 'completed' : 'in-progress',
+              duration: '45 min',
+              type: 'technical' as const,
+              feedback: evaluationData.data,
+              durationFeedback: evaluationData.feedback
+            };
+          });
+          
+          console.log('Transformed interviews:', transformedInterviews);
+          setInterviews(transformedInterviews);
+        }
+      } catch (error) {
+        console.error('Error fetching sessions:', error);
+        setInterviews([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
 
   const handleInterviewClick = (interview: InterviewHistory) => {
     setSelectedInterview(interview);
@@ -93,9 +101,13 @@ export default function HistoryPage() {
         `}</style>
         
         <div className="max-w-[1000px] mx-auto">
-          {!showDetails ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-gray-500">Loading interview history...</p>
+            </div>
+          ) : !showDetails ? (
             <InterviewList 
-              interviews={mockHistory} 
+              interviews={interviews} 
               onInterviewClick={handleInterviewClick}
             />
           ) : (
