@@ -27,6 +27,7 @@ export default function InterviewSetup({ onStartInterview }: InterviewSetupProps
       {sessionStart && <SessionLoader message="Starting your interview session..." />}
 
       <div className="flex flex-col h-full">
+        <h1 className="text-lg sm:text-2xl font-semibold text-gray-900 mb-4">Your journey to landing your dream job starts here.</h1>
         <h2 className="text-xl font-semibold text-gray-900 mb-6">
           Get Ready for Your Interview
         </h2>

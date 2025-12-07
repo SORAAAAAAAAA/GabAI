@@ -8,7 +8,6 @@ import {
   parseEvaluation,
   type EvaluationData,
 } from '@/utils/formatSessions';
-import {parseEvaluationData} from '@/utils/formatSessions';
 
 export interface InterviewHistory {
   id: number;

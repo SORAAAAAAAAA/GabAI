@@ -1,5 +1,5 @@
 'use client';
-import { Command, BrainCircuit, Mail, Eye, EyeOff, ArrowRight, Rocket } from "lucide-react";
+import { BrainCircuit, Mail, Eye, EyeOff, ArrowRight, Rocket } from "lucide-react";
 import { createClient } from "@/infra/supabase/supabaseClient";
 import { useState } from "react";
 import { useRouter } from 'next/navigation';

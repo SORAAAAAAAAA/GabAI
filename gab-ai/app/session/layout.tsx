@@ -51,7 +51,7 @@ export default function SessionLayout({
     }}>
       <ModalContainer hideBackground>
         <div className="flex h-screen w-screen relative bg-white">
-          <Sidebar isInSessionLayout={true} />
+          <Sidebar />
           
           <div className="flex-1 overflow-auto bg-white">
             {children}

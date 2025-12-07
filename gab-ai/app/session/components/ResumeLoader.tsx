@@ -6,7 +6,7 @@ interface SessionLoaderProps {
 
 export default function SessionLoader({ message = "Loading..." }: SessionLoaderProps) {
     return (
-        <div className="fixed inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-50">
             <div className="flex flex-col items-center space-y-6">
                 {/* Animated Spinner */}
                 <div className="relative">

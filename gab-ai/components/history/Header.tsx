@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Bell, ChevronDown } from 'lucide-react';
+import { Bell} from 'lucide-react';
 
 export default function PageHeader() {
   return (

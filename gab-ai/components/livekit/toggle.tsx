@@ -22,9 +22,9 @@ const toggleVariants = cva(
       variant: {
         default: 'bg-transparent',
         primary:
-          'bg-blue-100 data-[state=on]:bg-blue-400 hover:text-foreground text-destructive hover:text-foreground hover:bg-blue-200 hover:data-[state=on]:bg-blue-500',
+          'bg-neutral-200 data-[state=on]:bg-neutral-400 hover:text-foreground text-destructive hover:text-foreground hover:bg-neutral-300 hover:data-[state=on]:bg-neutral-500 dark:bg-neutral-700 dark:data-[state=on]:bg-neutral-600 dark:hover:bg-neutral-600 dark:hover:data-[state=on]:bg-neutral-700 dark:text-white',
         secondary:
-          'bg-blue-100 data-[state=on]:bg-blue-400 hover:text-foreground hover:bg-blue-200 hover:data-[state=on]:bg-blue-500 data-[state=on]:text-white',
+          'bg-neutral-200 data-[state=on]:bg-neutral-400 hover:text-foreground hover:bg-neutral-300 hover:data-[state=on]:bg-neutral-500 data-[state=on]:text-white dark:bg-neutral-700 dark:data-[state=on]:bg-neutral-600 dark:hover:bg-neutral-600 dark:hover:data-[state=on]:bg-neutral-700 dark:text-white',
         outline:
           'border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground',
       },

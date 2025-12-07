@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import { ImageResponse } from 'next/og';
+import Image from 'next/image';
 import getImageSize from 'buffer-image-size';
 import mime from 'mime';
 import { existsSync } from 'node:fs';
@@ -101,7 +102,7 @@ function cleanPageTitle(appName: string) {
 export const contentType = 'image/png';
 
 // Image generation
-export default async function Image() {
+export default async function GenerateOpenGraphImage() {
   const hdrs = await headers();
   const appConfig = await getAppConfig(hdrs);
 
@@ -165,8 +166,7 @@ export default async function Image() {
             gap: 10,
           }}
         >
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <img src={wordmarkSrcBase64} width={wordmarkSize.width} height={wordmarkSize.height} />
+          <Image src={wordmarkSrcBase64} width={wordmarkSize.width} height={wordmarkSize.height} alt="Wordmark" />
         </div>
         {/* logo */}
         <div
@@ -179,8 +179,7 @@ export default async function Image() {
             gap: 10,
           }}
         >
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <img src={logoSrcBase64} width={logoSize.width} height={logoSize.height} />
+          <Image src={logoSrcBase64} width={logoSize.width} height={logoSize.height} alt="Logo" />
         </div>
         {/* title */}
         <div

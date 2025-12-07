@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useSessionContext, useSessionMessages } from '@livekit/components-react';
+import { ChatCircleDots } from '@phosphor-icons/react/dist/ssr';
 import type { AppConfig } from '@/app-config';
 import { ChatTranscript } from '@/components/app/chat-transcript';
 import { PreConnectMessage } from '@/components/app/preconnect-message';
@@ -159,11 +160,11 @@ export const SessionView = ({
             console.log('Feedback button clicked');
             setFeedbackOpen(true);
           }}
-          className="cursor-pointer fixed lg:absolute right-4 bottom-20 lg:right-8 lg:top-8 z-40 bg-black hover:bg-gray-800 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition hover:scale-110"
+          className="cursor-pointer fixed lg:absolute right-4 bottom-20 lg:right-8 lg:top-8 z-40 bg-gradient-to-br from-neutral-800 to-neutral-900 dark:from-neutral-200 dark:to-neutral-100 hover:from-neutral-700 hover:to-neutral-800 dark:hover:from-neutral-300 dark:hover:to-neutral-200 text-white dark:text-black rounded-full w-14 h-14 flex items-center justify-center shadow-xl dark:shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-2xl dark:hover:shadow-neutral-300/50 active:scale-95"
           aria-label="Open feedback panel"
           title="Open AI Feedback"
         >
-          📝
+          <ChatCircleDots size={24} weight="fill" />
         </button>
       )}
     </section>

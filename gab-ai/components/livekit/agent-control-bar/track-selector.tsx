@@ -71,7 +71,7 @@ export function TrackSelector({
         onMediaDeviceError={onMediaDeviceError}
         onActiveDeviceChange={onActiveDeviceChange}
         className={cn([
-          'rounded-l-none pl-2 bg-blue-100 hover:bg-blue-200',
+          'rounded-l-none pl-2 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-foreground',
           'peer-data-[state=off]/track:text-destructive',
           'hover:text-foreground focus:text-foreground',
           'hover:peer-data-[state=off]/track:text-foreground',

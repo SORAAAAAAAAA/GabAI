@@ -220,7 +220,7 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
           {/* Footer */}
           <div className="mt-10">
             <p className="text-center text-sm text-zinc-500">
-              Don't have an account? 
+              Don&apos;t have an account? 
               <button 
                 onClick={onSwitchToSignup}
                 className="hover:underline underline-offset-4 decoration-zinc-900/20 hover:decoration-zinc-900 font-medium text-zinc-900 ml-1"

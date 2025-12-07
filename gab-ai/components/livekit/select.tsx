@@ -67,7 +67,7 @@ function SelectContent({
         data-slot="select-content"
         className={cn(
           [
-            'bg-blue-100 border-white text-popover-foreground relative z-50 overflow-x-hidden overflow-y-auto rounded-md border drop-shadow-xl/5',
+            'bg-neutral-200 dark:bg-neutral-700 border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-neutral-50 relative z-50 overflow-x-hidden overflow-y-auto rounded-md border drop-shadow-xl/5',
             'max-h-(--radix-select-content-available-height) min-w-[8rem]',
             'origin-(--radix-select-content-transform-origin)',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
@@ -120,9 +120,9 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         [
-          'relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none',
+          'relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none text-neutral-900 dark:text-neutral-50',
           'cursor-pointer disabled:cursor-not-allowed',
-          'focus:bg-accent focus:text-accent-foreground',
+          'focus:bg-neutral-300 dark:focus:bg-neutral-600 focus:text-neutral-900 dark:focus:text-neutral-50',
           'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
           '*:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2',
           "[&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

@@ -2,7 +2,7 @@
  
 import React from "react";
 import { useFileUpload } from "@/app/session/hooks/useFileUpload";
-import SessionLoader from "@/app/session/components/SessionLoader";
+import ResumeLoader from "@/app/session/components/ResumeLoader";
 import FilePreview from "@/app/session/components/FilePreview";
 import { Plus } from "lucide-react";
 
@@ -13,6 +13,21 @@ export default function ResumeUpload() {
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file type
+    const fileName = file.name.toLowerCase();
+    const isValidType = file.type === 'application/pdf' || 
+                       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                       file.type === 'application/msword' ||
+                       fileName.endsWith('.pdf') ||
+                       fileName.endsWith('.docx') ||
+                       fileName.endsWith('.doc');
+
+    if (!isValidType) {
+      alert('Please upload a PDF or Word document (DOCX/DOC).');
+      e.target.value = ''; // Clear input
+      return;
+    }
 
     try {
       await uploadFile(file);
@@ -25,16 +40,30 @@ export default function ResumeUpload() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) {
-      uploadFile(file);
+    if (!file) return;
+
+    // Validate file type
+    const fileName = file.name.toLowerCase();
+    const isValidType = file.type === 'application/pdf' || 
+                       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                       file.type === 'application/msword' ||
+                       fileName.endsWith('.pdf') ||
+                       fileName.endsWith('.docx') ||
+                       fileName.endsWith('.doc');
+
+    if (!isValidType) {
+      alert('Please upload a PDF or Word document (DOCX/DOC).');
+      return;
     }
+
+    uploadFile(file);
   };
 
   return (
     <div className="flex-1 h-full flex flex-col">
       <div className="bg-white rounded-xl shadow-sm relative h-full flex flex-col">
 
-        {loading && <SessionLoader message="Processing your resume..." />}
+        {loading && <ResumeLoader message="Processing your resume..." />}
 
         {/* Upload Box */}
         <div
@@ -57,7 +86,7 @@ export default function ResumeUpload() {
           <input
             type="file"
             id="resume-upload"
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            className={`absolute inset-0 w-full h-full opacity-0 cursor-pointer ${selectedFile ? 'hidden' : 'z-10'}`}
             onChange={handleFileInput}
           />
 
@@ -71,7 +100,7 @@ export default function ResumeUpload() {
           ) : (
             <div className="pointer-events-none px-6">
               {/* Upload Icon */}
-              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-5 mx-auto group-hover:scale-110 transition-transform duration-200">
+              <div className="w-14 h-14 bg-gray-200 text-black rounded-full flex items-center justify-center mb-5 mx-auto group-hover:scale-110 transition-transform duration-200">
                 <Plus className="w-6 h-6 stroke-[2.5]" />
               </div>
 
@@ -80,13 +109,16 @@ export default function ResumeUpload() {
               </h3>
 
               <p className="text-sm text-gray-500 mb-6">
-                Drag and drop your PDF here or click to browse
+                Drag and drop your PDF or Word document here or click to browse
               </p>
 
               {/* Tags */}
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-200 text-black">
                   PDF
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-200 text-black">
+                  DOCX
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700">
                   Or start interview to use previous

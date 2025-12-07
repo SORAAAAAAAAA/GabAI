@@ -45,7 +45,7 @@ interface RootLayoutProps {
 export default async function RootLayout({ children }: RootLayoutProps) {
   const hdrs = await headers();
   const appConfig = await getAppConfig(hdrs);
-  const { pageTitle, pageDescription } = appConfig;
+  const { pageDescription } = appConfig;
   const styles = getStyles(appConfig);
 
   return (
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <head>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         {styles && <style>{styles}</style>}
-        <title>{pageTitle}</title>
+        <title>GabAI</title>
         <meta name="description" content={pageDescription} />
         <ApplyThemeScript />
       </head>

@@ -63,7 +63,8 @@ export function useFileUpload(): UseFileUploadReturn {
       
           try {
             const supabase = createClient();
-            const { summary } = await uploadResume(file);
+            const uploadResponse = await uploadResume(file);
+            const { summary, pdfData } = uploadResponse;
             const resumeText = summary; 
             setParsedResume(resumeText);
             console.log('Parsed Resume Text:', resumeText);
@@ -110,7 +111,20 @@ export function useFileUpload(): UseFileUploadReturn {
             console.log('Resume uploaded and saved successfully:', data);
           }
           setSelectedFile(file);
-          createFilePreview(file);
+          
+          // Create PDF preview from the converted/original PDF data
+          if (pdfData) {
+            const binaryString = atob(pdfData);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+            const objectUrl = URL.createObjectURL(pdfBlob);
+            setFilePreview(`pdf:${objectUrl}`);
+          } else {
+            createFilePreview(file);
+          }
           } catch (err) {
             console.error('Error uploading resume:', err);
             alert(err instanceof Error ? err.message : String(err));
