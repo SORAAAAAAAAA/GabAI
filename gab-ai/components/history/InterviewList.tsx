@@ -13,8 +13,8 @@ interface InterviewListProps {
 export default function InterviewList({ interviews, onInterviewClick }: InterviewListProps) {
   // Calculate stats
   const totalInterviews = interviews.length;
-  const avgScore = Math.round(interviews.reduce((acc, item) => acc + item.score, 0) / interviews.length);
-  const bestScore = Math.max(...interviews.map(item => item.score));
+  const avgScore = interviews.length > 0 ? Math.round(interviews.reduce((acc, item) => acc + item.score, 0) / interviews.length) : 0;
+  const bestScore = interviews.length > 0 ? Math.max(...interviews.map(item => item.score)) : 0;
   const thisMonth = interviews.filter(item => {
     const interviewDate = new Date(item.date);
     const now = new Date();
