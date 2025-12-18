@@ -23,8 +23,39 @@ export const EvaluationHandler = () => {
         if (payload.type === 'EVALUATION') {
           console.log("New Evaluation Received:", payload.data);
           
+          // Parse the evaluation data
+          const evaluationData = payload.data;
+          const scores = typeof evaluationData.scores === 'string' 
+            ? JSON.parse(evaluationData.scores) 
+            : evaluationData.scores;
+          
+          // Handle both nested (feedback.strengths) and flat (strengths) structures
+          let strengths: string[] = [];
+          let improvement_tip = '';
+          
+          if (evaluationData.feedback) {
+            // Data is already in the correct nested structure
+            strengths = evaluationData.feedback.strengths || [];
+            improvement_tip = evaluationData.feedback.improvement_tip || '';
+          } else {
+            // Data is in flat structure, extract from top level
+            strengths = typeof evaluationData.strengths === 'string'
+              ? JSON.parse(evaluationData.strengths)
+              : (evaluationData.strengths || []);
+            improvement_tip = evaluationData.improvement_tip || '';
+          }
+
+          // Transform into the expected structure
+          const transformedData = {
+            scores,
+            feedback: {
+              strengths: Array.isArray(strengths) ? strengths : [strengths],
+              improvement_tip
+            }
+          };
+          
           // 1. Update the Global Context
-          setLatestEvaluation(payload.data);
+          setLatestEvaluation(transformedData);
 
           // 2. Optional: Show a toast immediately
           toast("New Feedback Received", {

@@ -4,6 +4,24 @@ import { evaluatorTool } from "@/utils/tools/tool.endEvaluator";
 
 const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY as string});
 
+// Helper function to round all numeric values to 2 decimal places
+function roundNumbers(obj: unknown): unknown {
+    if (typeof obj === 'number') {
+        return Math.round(obj * 100) / 100;
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(roundNumbers);
+    }
+    if (obj !== null && typeof obj === 'object') {
+        const rounded: Record<string, unknown> = {};
+        for (const key in obj) {
+            rounded[key] = roundNumbers((obj as Record<string, unknown>)[key]);
+        }
+        return rounded;
+    }
+    return obj;
+}
+
 export async function endEvaluator(conversation: string, evaluationData: string) {
 
     if (!conversation || !evaluationData) {
@@ -12,7 +30,7 @@ export async function endEvaluator(conversation: string, evaluationData: string)
 
     try {
         const result = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
+            model: "gemini-2.5-flash",
             contents: `These will be the data that you will use for your analysis: ${conversation} ${evaluationData} Upon start the analysis, strictly adhere to the provided instructions. Use the designated tool to format your output accordingly.`,
             config: {
                 systemInstruction: analysisInstruction,
@@ -29,7 +47,9 @@ export async function endEvaluator(conversation: string, evaluationData: string)
         if (result.functionCalls && result.functionCalls.length > 0) {
             const functionCall = result.functionCalls[0];   
 
-            const args = JSON.stringify(functionCall.args);
+            // Round all numeric values to 2 decimal places
+            const roundedArgs = roundNumbers(functionCall.args);
+            const args = JSON.stringify(roundedArgs);
             
             return args;
         }

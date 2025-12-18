@@ -35,7 +35,7 @@ export function FeedbackPanel() {
         <div className="bg-green-50 rounded-lg p-3">
           <p className="text-xs font-semibold text-gray-700 mb-2">Strengths</p>
           <ul className="space-y-1">
-            {latestEvaluation.feedback.strengths.map((strength, idx) => (
+            {(latestEvaluation.feedback?.strengths ?? []).map((strength, idx) => (
               <li key={idx} className="text-xs text-green-800 leading-relaxed">
                 • {strength}
               </li>
@@ -46,7 +46,7 @@ export function FeedbackPanel() {
         {/* Improvement Tip */}
         <div className="bg-amber-50 rounded-lg p-3">
           <p className="text-xs font-semibold text-gray-700 mb-2">Improvement Tip</p>
-          <p className="text-xs text-amber-800 leading-relaxed">{latestEvaluation.feedback.improvement_tip}</p>
+          <p className="text-xs text-amber-800 leading-relaxed">{latestEvaluation.feedback?.improvement_tip || 'No improvement tip available'}</p>
         </div>
       </div>
     </div>

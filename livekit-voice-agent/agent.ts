@@ -6,15 +6,11 @@ import * as livekit from '@livekit/agents-plugin-livekit';
 import { BackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
 import { generateInterviewInstruction } from './promptInstructions/interviewInstruction.js';
 import { 
-  getUserName, 
-  getSupabaseResume, 
-  getSupabaseSession, 
-  getSupabaseStartedAt, 
   storeSupabaseEvaluation, 
   endSupabaseSession, 
   storeSupabaseConversation 
 } from "./service/userServices.js";
-import { evaluatorModel } from './infra/gemini/evaluatorAI.js';
+import { createEvaluatorChat } from './infra/gemini/evaluatorAI.js';
 
 dotenv.config({ path: '.env.local' });
 
@@ -83,12 +79,32 @@ export default defineAgent({
     if (!ctx.room.isConnected) return;
 
     try {
+      // Create a fresh chat instance for each evaluation
+      const evaluatorModel = createEvaluatorChat();
     
       const result = await evaluatorModel.sendMessage({
         message: `Interviewer asked: ${question}\nCandidate answered: ${answer}\n Evaluate this response.`
       });
 
-      const functionCall = result.functionCalls?.[0];
+      console.log('[Evaluator] Raw evaluation result:', JSON.stringify(result, null, 2));
+
+      // Extract function calls from candidates[0].content
+      const candidate = result.candidates?.[0];
+      console.log('[Evaluator] Candidate:', candidate);
+      
+      if (!candidate) {
+        console.error('[Evaluator] No candidate found in result');
+        return;
+      }
+
+      const parts = candidate?.content?.parts;
+      console.log('[Evaluator] Content parts:', JSON.stringify(parts, null, 2));
+
+      const functionCall = parts?.find(
+        (part: any) => part.functionCall !== undefined
+      )?.functionCall;
+
+      console.log('[Evaluator] Function call found:', JSON.stringify(functionCall, null, 2));
 
       if (functionCall && functionCall.name === 'evaluateResponse') {
         const evaluationData = functionCall.args;
@@ -103,12 +119,19 @@ export default defineAgent({
           data: evaluationData
         });
 
+        console.log('[Evaluator] Publishing payload:', payload);
+
         if (ctx.room.localParticipant) {
             await ctx.room.localParticipant.publishData(
             new TextEncoder().encode(payload),
             { reliable: true, topic: 'evaluation' }
           );
+          console.log('[Evaluator] Payload published successfully');
+        } else {
+          console.error('[Evaluator] No local participant available');
         }
+      } else {
+        console.warn('[Evaluator] Function call not found or name mismatch');
       }
     } catch (error) {
         console.error('[Evaluator] Error analyzing response:', error);
