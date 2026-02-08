@@ -10,6 +10,14 @@ interface ActivityDay {
 }
 
 export const ActivityChart: React.FC = () => {
+  // Helper function to get local date string (YYYY-MM-DD)
+  const getLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Initialize with mock data for better UX
   const [days, setDays] = useState<ActivityDay[]>([
     { label: 'S', height: 15, active: false, date: '' },
@@ -27,23 +35,28 @@ export const ActivityChart: React.FC = () => {
         const response = await fetch('/api/history');
         const sessions = await response.json();
 
-        // Get last 7 days activity
+        // Get current week activity (Sunday to Saturday)
         const today = new Date();
         const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         const activityMap: { [key: string]: number } = {};
 
-        // Initialize last 7 days
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const dateKey = date.toISOString().split('T')[0];
+        // Get Sunday of current week
+        const currentDayOfWeek = today.getDay();
+        const sunday = new Date(today);
+        sunday.setDate(today.getDate() - currentDayOfWeek);
+
+        // Initialize current week (Sunday to Saturday)
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(sunday);
+          date.setDate(sunday.getDate() + i);
+          const dateKey = getLocalDateString(date);
           activityMap[dateKey] = 0;
         }
 
         // Count sessions per day
         if (sessions && Array.isArray(sessions)) {
           sessions.forEach((session: { started_at: string }) => {
-            const sessionDate = new Date(session.started_at).toISOString().split('T')[0];
+            const sessionDate = getLocalDateString(new Date(session.started_at));
             if (activityMap.hasOwnProperty(sessionDate)) {
               activityMap[sessionDate]++;
             }
@@ -55,18 +68,17 @@ export const ActivityChart: React.FC = () => {
         const sessionCounts = Object.values(activityMap);
         const maxSessions = Math.max(...sessionCounts, 1);
 
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const dateKey = date.toISOString().split('T')[0];
-          const dayIndex = date.getDay();
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(sunday);
+          date.setDate(sunday.getDate() + i);
+          const dateKey = getLocalDateString(date);
           const sessionCount = activityMap[dateKey];
           
           // Scale height: 0 sessions = 15%, max sessions = 100%
           const heightPercentage = (sessionCount / maxSessions) * 85 + 15;
 
           activityDays.push({
-            label: dayLabels[dayIndex],
+            label: dayLabels[i],
             height: heightPercentage,
             active: sessionCount > 0,
             value: sessionCount > 0 ? sessionCount : undefined,
